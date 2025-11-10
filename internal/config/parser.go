@@ -8,12 +8,22 @@ import (
 	"github.com/spf13/viper"
 )
 
-// DefaultConfigPath returns the default path for the asc.toml file
+// DefaultConfigPath returns the default path for the asc.toml configuration file.
+// This is typically "asc.toml" in the current working directory.
 func DefaultConfigPath() string {
 	return "asc.toml"
 }
 
-// Load reads and parses the configuration file from the given path
+// Load reads and parses the configuration file from the given path.
+// It validates required fields, applies defaults, and expands paths.
+// Returns an error if the file doesn't exist, has invalid syntax, or fails validation.
+//
+// Example:
+//
+//	cfg, err := config.Load("asc.toml")
+//	if err != nil {
+//	    log.Fatalf("Failed to load config: %v", err)
+//	}
 func Load(configPath string) (*Config, error) {
 	// Set up viper
 	v := viper.New()

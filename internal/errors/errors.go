@@ -1,3 +1,12 @@
+// Package errors provides structured error handling for the Agent Stack Controller.
+// It defines error categories, formatting utilities, and common error constructors
+// with actionable solutions for users.
+//
+// Example usage:
+//
+//	err := errors.NewDependencyError("python3")
+//	fmt.Fprintln(os.Stderr, err.FormatCLI())
+//	os.Exit(1)
 package errors
 
 import (
@@ -7,7 +16,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-// ErrorCategory represents the type of error
+// ErrorCategory represents the type of error for classification and handling.
 type ErrorCategory string
 
 const (
@@ -18,7 +27,8 @@ const (
 	UserError       ErrorCategory = "User Error"
 )
 
-// ASCError represents a structured error with context and solutions
+// ASCError represents a structured error with context and actionable solutions.
+// It includes a category, message, optional reason, solution, and wrapped error.
 type ASCError struct {
 	Category ErrorCategory
 	Message  string
@@ -40,7 +50,8 @@ func (e *ASCError) Unwrap() error {
 	return e.Err
 }
 
-// New creates a new ASCError
+// New creates a new ASCError with the specified category and message.
+// Use WithReason and WithSolution to add additional context.
 func New(category ErrorCategory, message string) *ASCError {
 	return &ASCError{
 		Category: category,

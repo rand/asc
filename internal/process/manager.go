@@ -1,3 +1,23 @@
+// Package process provides process lifecycle management for the Agent Stack Controller.
+// It handles starting, stopping, and monitoring background processes such as agents
+// and services, with support for PID tracking, log file management, and graceful shutdown.
+//
+// Example usage:
+//
+//	manager, err := process.NewManager("~/.asc/pids", "~/.asc/logs")
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//
+//	pid, err := manager.Start("my-agent", "python", []string{"agent.py"}, []string{"KEY=value"})
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//
+//	// Later...
+//	if err := manager.Stop(pid); err != nil {
+//	    log.Fatal(err)
+//	}
 package process
 
 import (
@@ -10,7 +30,7 @@ import (
 	"time"
 )
 
-// ProcessStatus represents the current state of a process
+// ProcessStatus represents the current state of a process.
 type ProcessStatus string
 
 const (
@@ -19,7 +39,8 @@ const (
 	StatusError   ProcessStatus = "error"
 )
 
-// ProcessInfo contains metadata about a managed process
+// ProcessInfo contains metadata about a managed process including
+// its PID, command, environment variables, and log file location.
 type ProcessInfo struct {
 	Name      string            `json:"name"`
 	PID       int               `json:"pid"`
@@ -54,13 +75,24 @@ type ProcessManager interface {
 	ListProcesses() ([]*ProcessInfo, error)
 }
 
-// Manager implements the ProcessManager interface
+// Manager implements the ProcessManager interface.
+// It stores process metadata in JSON files in the PID directory
+// and redirects process output to log files in the log directory.
 type Manager struct {
-	pidDir string
-	logDir string
+	pidDir string // Directory for storing PID files
+	logDir string // Directory for storing log files
 }
 
-// NewManager creates a new process manager with the specified directories
+// NewManager creates a new process manager with the specified directories.
+// The directories will be created if they don't exist. Returns an error
+// if directory creation fails.
+//
+// Example:
+//
+//	manager, err := process.NewManager("~/.asc/pids", "~/.asc/logs")
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
 func NewManager(pidDir, logDir string) (*Manager, error) {
 	// Create directories if they don't exist
 	if err := os.MkdirAll(pidDir, 0755); err != nil {
@@ -76,7 +108,13 @@ func NewManager(pidDir, logDir string) (*Manager, error) {
 	}, nil
 }
 
-// Start launches a new process
+// Start launches a new process with the given name, command, arguments, and environment.
+// The process runs in its own process group for proper cleanup. Output is redirected
+// to a log file in the log directory. Returns the process PID on success.
+//
+// Example:
+//
+//	pid, err := manager.Start("my-agent", "python", []string{"agent.py"}, []string{"API_KEY=secret"})
 func (m *Manager) Start(name string, command string, args []string, env []string) (int, error) {
 	// Create log file
 	logPath := filepath.Join(m.logDir, fmt.Sprintf("%s.log", name))
@@ -136,7 +174,9 @@ func (m *Manager) Start(name string, command string, args []string, env []string
 	return pid, nil
 }
 
-// Stop terminates a process by PID
+// Stop terminates a process by PID using graceful shutdown.
+// It sends SIGTERM and waits up to 5 seconds for the process to exit.
+// If the timeout is exceeded, it sends SIGKILL to force termination.
 func (m *Manager) Stop(pid int) error {
 	process, err := os.FindProcess(pid)
 	if err != nil {
@@ -172,7 +212,9 @@ func (m *Manager) Stop(pid int) error {
 	return nil
 }
 
-// StopAll terminates all managed processes
+// StopAll terminates all managed processes and cleans up their PID files.
+// It attempts to stop each process gracefully and collects any errors that occur.
+// Returns an error if any processes fail to stop.
 func (m *Manager) StopAll() error {
 	processes, err := m.ListProcesses()
 	if err != nil {
@@ -199,7 +241,8 @@ func (m *Manager) StopAll() error {
 	return nil
 }
 
-// IsRunning checks if a process with the given PID is running
+// IsRunning checks if a process with the given PID is running.
+// It uses signal 0 to test process existence without affecting the process.
 func (m *Manager) IsRunning(pid int) bool {
 	process, err := os.FindProcess(pid)
 	if err != nil {
@@ -211,7 +254,8 @@ func (m *Manager) IsRunning(pid int) bool {
 	return err == nil
 }
 
-// GetStatus returns the status of a process by PID
+// GetStatus returns the status of a process by PID.
+// Returns StatusRunning if the process is active, StatusStopped otherwise.
 func (m *Manager) GetStatus(pid int) ProcessStatus {
 	if m.IsRunning(pid) {
 		return StatusRunning
@@ -219,7 +263,9 @@ func (m *Manager) GetStatus(pid int) ProcessStatus {
 	return StatusStopped
 }
 
-// GetProcessInfo returns metadata about a managed process by name
+// GetProcessInfo returns metadata about a managed process by name.
+// It reads the process information from the PID file. Returns an error
+// if the process is not found or the PID file is invalid.
 func (m *Manager) GetProcessInfo(name string) (*ProcessInfo, error) {
 	pidFile := filepath.Join(m.pidDir, fmt.Sprintf("%s.json", name))
 	data, err := os.ReadFile(pidFile)
@@ -238,7 +284,8 @@ func (m *Manager) GetProcessInfo(name string) (*ProcessInfo, error) {
 	return &info, nil
 }
 
-// ListProcesses returns all managed processes
+// ListProcesses returns all managed processes by reading PID files
+// from the PID directory. Invalid or corrupted PID files are skipped.
 func (m *Manager) ListProcesses() ([]*ProcessInfo, error) {
 	entries, err := os.ReadDir(m.pidDir)
 	if err != nil {

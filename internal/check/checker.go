@@ -1,3 +1,15 @@
+// Package check provides dependency verification for the Agent Stack Controller.
+// It checks for required binaries, configuration files, and environment variables,
+// with support for formatted output using lipgloss.
+//
+// Example usage:
+//
+//	checker := check.NewChecker("asc.toml", ".env")
+//	results := checker.RunAll()
+//	fmt.Println(check.FormatResults(results))
+//	if check.HasFailures(results) {
+//	    os.Exit(1)
+//	}
 package check
 
 import (
@@ -10,7 +22,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-// CheckStatus represents the status of a check
+// CheckStatus represents the status of a check.
 type CheckStatus string
 
 const (
@@ -19,7 +31,8 @@ const (
 	CheckWarn CheckStatus = "warn"
 )
 
-// CheckResult represents the result of a single check
+// CheckResult represents the result of a single check including
+// the component name, status, and a descriptive message.
 type CheckResult struct {
 	Name    string
 	Status  CheckStatus
@@ -35,13 +48,19 @@ type Checker interface {
 	RunAll() []CheckResult
 }
 
-// DefaultChecker implements the Checker interface
+// DefaultChecker implements the Checker interface.
+// It performs checks against the file system and system PATH.
 type DefaultChecker struct {
-	configPath string
-	envPath    string
+	configPath string // Path to asc.toml configuration file
+	envPath    string // Path to .env environment file
 }
 
-// NewChecker creates a new DefaultChecker instance
+// NewChecker creates a new DefaultChecker instance with the specified
+// configuration and environment file paths.
+//
+// Example:
+//
+//	checker := check.NewChecker("asc.toml", ".env")
 func NewChecker(configPath, envPath string) Checker {
 	return &DefaultChecker{
 		configPath: configPath,
@@ -49,7 +68,8 @@ func NewChecker(configPath, envPath string) Checker {
 	}
 }
 
-// CheckBinary checks if a binary exists in the system PATH
+// CheckBinary checks if a binary exists in the system PATH.
+// Returns CheckPass if found, CheckFail otherwise.
 func (c *DefaultChecker) CheckBinary(name string) CheckResult {
 	_, err := exec.LookPath(name)
 	if err != nil {
@@ -66,7 +86,8 @@ func (c *DefaultChecker) CheckBinary(name string) CheckResult {
 	}
 }
 
-// CheckFile checks if a file exists and is readable
+// CheckFile checks if a file exists and is readable.
+// It expands ~ to the home directory and verifies the file is not a directory.
 func (c *DefaultChecker) CheckFile(path string) CheckResult {
 	// Expand home directory if present
 	if len(path) > 0 && path[0] == '~' {
@@ -118,7 +139,8 @@ func (c *DefaultChecker) CheckFile(path string) CheckResult {
 	}
 }
 
-// CheckConfig checks if the configuration file exists and is valid TOML
+// CheckConfig checks if the configuration file exists and is valid TOML.
+// It verifies the file can be parsed and contains required fields.
 func (c *DefaultChecker) CheckConfig() CheckResult {
 	// First check if file exists
 	fileResult := c.CheckFile(c.configPath)
@@ -167,7 +189,9 @@ func (c *DefaultChecker) CheckConfig() CheckResult {
 	}
 }
 
-// CheckEnv checks if required environment variables or .env file keys exist
+// CheckEnv checks if required environment variables or .env file keys exist.
+// It reads the .env file and verifies that all specified keys are present.
+// Returns CheckWarn if keys are missing, CheckPass if all are present.
 func (c *DefaultChecker) CheckEnv(keys []string) CheckResult {
 	// First check if .env file exists
 	fileResult := c.CheckFile(c.envPath)
@@ -227,7 +251,8 @@ func (c *DefaultChecker) CheckEnv(keys []string) CheckResult {
 	}
 }
 
-// RunAll runs all dependency checks
+// RunAll runs all dependency checks including binaries, configuration,
+// and environment variables. Returns a slice of CheckResult for each check.
 func (c *DefaultChecker) RunAll() []CheckResult {
 	results := []CheckResult{}
 
@@ -255,7 +280,9 @@ func (c *DefaultChecker) RunAll() []CheckResult {
 	return results
 }
 
-// FormatResults formats check results as a styled table using lipgloss
+// FormatResults formats check results as a styled table using lipgloss.
+// It color-codes results (green for pass, red for fail, yellow for warn)
+// and returns a formatted string suitable for terminal output.
 func FormatResults(results []CheckResult) string {
 	// Define styles
 	passStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Bold(true)  // Green
@@ -301,7 +328,8 @@ func FormatResults(results []CheckResult) string {
 	return output
 }
 
-// HasFailures returns true if any check failed
+// HasFailures returns true if any check failed (CheckFail status).
+// Warnings (CheckWarn) are not considered failures.
 func HasFailures(results []CheckResult) bool {
 	for _, result := range results {
 		if result.Status == CheckFail {

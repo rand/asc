@@ -1,3 +1,16 @@
+// Package logger provides structured logging with automatic file rotation
+// for the Agent Stack Controller. It supports multiple log levels and
+// thread-safe concurrent logging.
+//
+// Example usage:
+//
+//	if err := logger.Init(); err != nil {
+//	    log.Fatal(err)
+//	}
+//	defer logger.Close()
+//
+//	logger.Info("Starting agent stack")
+//	logger.Error("Failed to start agent: %v", err)
 package logger
 
 import (
@@ -9,7 +22,7 @@ import (
 	"time"
 )
 
-// LogLevel represents the severity of a log message
+// LogLevel represents the severity of a log message.
 type LogLevel int
 
 const (
@@ -35,7 +48,8 @@ func (l LogLevel) String() string {
 	}
 }
 
-// Logger provides structured logging with rotation
+// Logger provides structured logging with automatic file rotation.
+// It is thread-safe and supports configurable log levels and rotation policies.
 type Logger struct {
 	mu           sync.Mutex
 	file         *os.File
@@ -51,7 +65,9 @@ var (
 	once          sync.Once
 )
 
-// Init initializes the default logger
+// Init initializes the default logger with standard settings.
+// The log file is created at ~/.asc/logs/asc.log with a 10MB max size,
+// 5 backup files, and INFO level. This should be called once at startup.
 func Init() error {
 	var err error
 	once.Do(func() {
@@ -73,7 +89,13 @@ func Init() error {
 	return err
 }
 
-// NewLogger creates a new logger instance
+// NewLogger creates a new logger instance with custom settings.
+// maxSize is in bytes, maxBackups is the number of old log files to keep,
+// and minLevel is the minimum severity level to log.
+//
+// Example:
+//
+//	logger, err := logger.NewLogger("/var/log/app.log", 10*1024*1024, 5, logger.INFO)
 func NewLogger(logPath string, maxSize int64, maxBackups int, minLevel LogLevel) (*Logger, error) {
 	file, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
@@ -98,7 +120,8 @@ func NewLogger(logPath string, maxSize int64, maxBackups int, minLevel LogLevel)
 	return logger, nil
 }
 
-// Close closes the log file
+// Close closes the log file. This should be called when shutting down
+// to ensure all buffered data is written.
 func (l *Logger) Close() error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -171,27 +194,32 @@ func (l *Logger) log(level LogLevel, format string, args ...interface{}) {
 	l.currentSize += int64(n)
 }
 
-// Debug logs a debug message
+// Debug logs a debug message with printf-style formatting.
+// Only logged if the logger's level is DEBUG or lower.
 func (l *Logger) Debug(format string, args ...interface{}) {
 	l.log(DEBUG, format, args...)
 }
 
-// Info logs an info message
+// Info logs an info message with printf-style formatting.
+// Only logged if the logger's level is INFO or lower.
 func (l *Logger) Info(format string, args ...interface{}) {
 	l.log(INFO, format, args...)
 }
 
-// Warn logs a warning message
+// Warn logs a warning message with printf-style formatting.
+// Only logged if the logger's level is WARN or lower.
 func (l *Logger) Warn(format string, args ...interface{}) {
 	l.log(WARN, format, args...)
 }
 
-// Error logs an error message
+// Error logs an error message with printf-style formatting.
+// Always logged regardless of the logger's level.
 func (l *Logger) Error(format string, args ...interface{}) {
 	l.log(ERROR, format, args...)
 }
 
-// SetLevel sets the minimum log level
+// SetLevel sets the minimum log level. Messages below this level
+// will not be logged. Thread-safe.
 func (l *Logger) SetLevel(level LogLevel) {
 	l.mu.Lock()
 	defer l.mu.Unlock()

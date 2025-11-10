@@ -1,3 +1,17 @@
+// Package beads provides a client for interacting with the beads task database.
+// It wraps the bd CLI tool and provides a Go interface for task management
+// operations including creating, reading, updating, and deleting tasks.
+//
+// Example usage:
+//
+//	client := beads.NewClient("./project-repo", 5*time.Second)
+//	tasks, err := client.GetTasks([]string{"open", "in_progress"})
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//	for _, task := range tasks {
+//	    fmt.Printf("%s: %s\n", task.ID, task.Title)
+//	}
 package beads
 
 import (
@@ -8,7 +22,7 @@ import (
 	"time"
 )
 
-// BeadsClient defines the interface for interacting with the beads task database
+// BeadsClient defines the interface for interacting with the beads task database.
 type BeadsClient interface {
 	GetTasks(statuses []string) ([]Task, error)
 	CreateTask(title string) (Task, error)
@@ -17,7 +31,8 @@ type BeadsClient interface {
 	Refresh() error
 }
 
-// Task represents a beads task
+// Task represents a beads task with its metadata including
+// ID, title, status, phase, and optional assignee.
 type Task struct {
 	ID       string `json:"id"`
 	Title    string `json:"title"`
@@ -26,7 +41,8 @@ type Task struct {
 	Assignee string `json:"assignee,omitempty"`
 }
 
-// TaskUpdate represents fields that can be updated on a task
+// TaskUpdate represents fields that can be updated on a task.
+// All fields are optional pointers; only non-nil fields will be updated.
 type TaskUpdate struct {
 	Title    *string `json:"title,omitempty"`
 	Status   *string `json:"status,omitempty"`
@@ -34,13 +50,20 @@ type TaskUpdate struct {
 	Assignee *string `json:"assignee,omitempty"`
 }
 
-// Client implements the BeadsClient interface using the bd CLI
+// Client implements the BeadsClient interface using the bd CLI tool.
+// It executes bd commands and parses JSON output.
 type Client struct {
-	dbPath         string
-	refreshInterval time.Duration
+	dbPath         string        // Path to the beads database repository
+	refreshInterval time.Duration // Interval for periodic refresh operations
 }
 
-// NewClient creates a new beads client
+// NewClient creates a new beads client with the specified database path
+// and refresh interval. The dbPath should point to a git repository with
+// beads initialized.
+//
+// Example:
+//
+//	client := beads.NewClient("./project-repo", 5*time.Second)
 func NewClient(dbPath string, refreshInterval time.Duration) *Client {
 	return &Client{
 		dbPath:         dbPath,
@@ -48,7 +71,9 @@ func NewClient(dbPath string, refreshInterval time.Duration) *Client {
 	}
 }
 
-// GetTasks retrieves tasks filtered by status
+// GetTasks retrieves tasks filtered by status using the bd CLI.
+// If statuses is empty, all tasks are returned. Returns an error if
+// the bd command fails or output cannot be parsed.
 func (c *Client) GetTasks(statuses []string) ([]Task, error) {
 	args := []string{"--json", "list"}
 	
@@ -80,7 +105,8 @@ func (c *Client) GetTasks(statuses []string) ([]Task, error) {
 	return tasks, nil
 }
 
-// CreateTask creates a new task with the given title
+// CreateTask creates a new task with the given title using the bd CLI.
+// Returns the created task with its assigned ID, or an error if creation fails.
 func (c *Client) CreateTask(title string) (Task, error) {
 	cmd := exec.Command("bd", "--json", "create", title)
 	if c.dbPath != "" {
@@ -103,7 +129,9 @@ func (c *Client) CreateTask(title string) (Task, error) {
 	return task, nil
 }
 
-// UpdateTask updates a task with the given ID
+// UpdateTask updates a task with the given ID using the bd CLI.
+// Only non-nil fields in the TaskUpdate struct will be updated.
+// Returns an error if the update fails.
 func (c *Client) UpdateTask(id string, updates TaskUpdate) error {
 	args := []string{"update", id}
 	
@@ -135,7 +163,8 @@ func (c *Client) UpdateTask(id string, updates TaskUpdate) error {
 	return nil
 }
 
-// DeleteTask deletes a task with the given ID
+// DeleteTask deletes a task with the given ID using the bd CLI.
+// Returns an error if the deletion fails or the task doesn't exist.
 func (c *Client) DeleteTask(id string) error {
 	cmd := exec.Command("bd", "delete", id)
 	if c.dbPath != "" {
@@ -152,7 +181,8 @@ func (c *Client) DeleteTask(id string) error {
 	return nil
 }
 
-// Refresh executes git pull on the beads repository
+// Refresh executes git pull on the beads repository to sync with remote changes.
+// Returns an error if the pull fails or encounters merge conflicts.
 func (c *Client) Refresh() error {
 	if c.dbPath == "" {
 		return fmt.Errorf("dbPath not configured")

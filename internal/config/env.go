@@ -8,18 +8,30 @@ import (
 )
 
 // RequiredAPIKeys lists the API keys that must be present in the .env file
+// for the agent stack to function properly. At least one key should be present
+// depending on which LLM models are configured.
 var RequiredAPIKeys = []string{
 	"CLAUDE_API_KEY",
 	"OPENAI_API_KEY",
 	"GOOGLE_API_KEY",
 }
 
-// DefaultEnvPath returns the default path for the .env file
+// DefaultEnvPath returns the default path for the .env file.
+// This is typically ".env" in the current working directory.
 func DefaultEnvPath() string {
 	return ".env"
 }
 
-// LoadEnv reads the .env file and loads API keys into the environment
+// LoadEnv reads the .env file and loads API keys into the environment.
+// It parses KEY=VALUE format, skips comments and empty lines, and sets
+// environment variables for each entry. Returns an error if the file
+// doesn't exist or has invalid syntax.
+//
+// Example:
+//
+//	if err := config.LoadEnv(".env"); err != nil {
+//	    log.Fatalf("Failed to load environment: %v", err)
+//	}
 func LoadEnv(envPath string) error {
 	// Check if file exists
 	if _, err := os.Stat(envPath); os.IsNotExist(err) {
@@ -70,7 +82,8 @@ func LoadEnv(envPath string) error {
 	return nil
 }
 
-// ValidateEnv checks that all required API keys are present in the environment
+// ValidateEnv checks that all required API keys are present in the environment.
+// Returns an error listing any missing keys. This should be called after LoadEnv.
 func ValidateEnv() error {
 	missing := []string{}
 
@@ -87,7 +100,10 @@ func ValidateEnv() error {
 	return nil
 }
 
-// LoadAndValidateEnv loads the .env file and validates required keys
+// LoadAndValidateEnv loads the .env file and validates required keys.
+// This is a convenience function that combines LoadEnv and ValidateEnv.
+// Returns an error if the file doesn't exist, has invalid syntax, or
+// is missing required API keys.
 func LoadAndValidateEnv(envPath string) error {
 	if err := LoadEnv(envPath); err != nil {
 		return err

@@ -1,3 +1,17 @@
+// Package mcp provides a client for interacting with the MCP agent mail server.
+// It handles HTTP communication for sending messages, retrieving agent status,
+// and tracking heartbeats, with support for retries and error handling.
+//
+// Example usage:
+//
+//	client := mcp.NewHTTPClient("http://localhost:8765")
+//	messages, err := client.GetMessages(time.Now().Add(-5 * time.Minute))
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//	for _, msg := range messages {
+//	    fmt.Printf("[%s] %s: %s\n", msg.Type, msg.Source, msg.Content)
+//	}
 package mcp
 
 import (
@@ -9,7 +23,7 @@ import (
 	"time"
 )
 
-// MessageType represents the type of MCP message
+// MessageType represents the type of MCP message.
 type MessageType string
 
 const (
@@ -19,7 +33,7 @@ const (
 	TypeMessage MessageType = "message"
 )
 
-// AgentState represents the current state of an agent
+// AgentState represents the current state of an agent in the system.
 type AgentState string
 
 const (
@@ -29,7 +43,7 @@ const (
 	StateOffline AgentState = "offline"
 )
 
-// Message represents an MCP message
+// Message represents an MCP message exchanged between agents or services.
 type Message struct {
 	Timestamp time.Time   `json:"timestamp"`
 	Type      MessageType `json:"type"`
@@ -37,7 +51,8 @@ type Message struct {
 	Content   string      `json:"content"`
 }
 
-// AgentStatus represents the status of an agent
+// AgentStatus represents the status of an agent including its current state,
+// task, and last seen timestamp.
 type AgentStatus struct {
 	Name        string     `json:"name"`
 	State       AgentState `json:"state"`
@@ -52,15 +67,21 @@ type MCPClient interface {
 	GetAgentStatus(agentName string) (AgentStatus, error)
 }
 
-// HTTPClient implements the MCPClient interface using HTTP
+// HTTPClient implements the MCPClient interface using HTTP requests.
+// It includes retry logic and configurable timeouts.
 type HTTPClient struct {
-	baseURL    string
-	httpClient *http.Client
-	maxRetries int
-	retryDelay time.Duration
+	baseURL    string        // Base URL of the MCP server
+	httpClient *http.Client  // HTTP client with timeout
+	maxRetries int           // Maximum number of retry attempts
+	retryDelay time.Duration // Base delay between retries
 }
 
-// NewHTTPClient creates a new HTTP-based MCP client
+// NewHTTPClient creates a new HTTP-based MCP client with the specified base URL.
+// The client is configured with a 10-second timeout and 3 retry attempts.
+//
+// Example:
+//
+//	client := mcp.NewHTTPClient("http://localhost:8765")
 func NewHTTPClient(baseURL string) *HTTPClient {
 	return &HTTPClient{
 		baseURL: baseURL,
@@ -72,7 +93,8 @@ func NewHTTPClient(baseURL string) *HTTPClient {
 	}
 }
 
-// GetMessages retrieves messages from the MCP server since the given timestamp
+// GetMessages retrieves messages from the MCP server since the given timestamp.
+// Returns an empty slice if no messages are available. Retries on network errors.
 func (c *HTTPClient) GetMessages(since time.Time) ([]Message, error) {
 	url := fmt.Sprintf("%s/messages?since=%d", c.baseURL, since.Unix())
 	
@@ -85,7 +107,8 @@ func (c *HTTPClient) GetMessages(since time.Time) ([]Message, error) {
 	return messages, nil
 }
 
-// SendMessage sends a message to the MCP server
+// SendMessage sends a message to the MCP server.
+// The message is serialized to JSON and sent via HTTP POST. Retries on network errors.
 func (c *HTTPClient) SendMessage(msg Message) error {
 	url := fmt.Sprintf("%s/messages", c.baseURL)
 	
@@ -102,7 +125,8 @@ func (c *HTTPClient) SendMessage(msg Message) error {
 	return nil
 }
 
-// GetAgentStatus retrieves the status of a specific agent
+// GetAgentStatus retrieves the status of a specific agent by name.
+// Returns an error if the agent is not found or the request fails.
 func (c *HTTPClient) GetAgentStatus(agentName string) (AgentStatus, error) {
 	url := fmt.Sprintf("%s/agents/%s/status", c.baseURL, agentName)
 	
@@ -179,7 +203,7 @@ func (c *HTTPClient) doRequest(method, url string, body []byte, result interface
 	return nil
 }
 
-// HTTPError represents an HTTP error response
+// HTTPError represents an HTTP error response with status code and message.
 type HTTPError struct {
 	StatusCode int
 	Message    string
@@ -189,7 +213,7 @@ func (e *HTTPError) Error() string {
 	return fmt.Sprintf("HTTP %d: %s", e.StatusCode, e.Message)
 }
 
-// Heartbeat represents an agent heartbeat message
+// Heartbeat represents an agent heartbeat message used to track agent liveness.
 type Heartbeat struct {
 	AgentName   string     `json:"agent_name"`
 	State       AgentState `json:"state"`
@@ -197,7 +221,8 @@ type Heartbeat struct {
 	Timestamp   time.Time  `json:"timestamp"`
 }
 
-// GetHeartbeats retrieves agent heartbeats from the MCP server
+// GetHeartbeats retrieves agent heartbeats from the MCP server.
+// Heartbeats are used to determine agent liveness and current state.
 func (c *HTTPClient) GetHeartbeats() ([]Heartbeat, error) {
 	url := fmt.Sprintf("%s/heartbeats", c.baseURL)
 	
@@ -210,7 +235,8 @@ func (c *HTTPClient) GetHeartbeats() ([]Heartbeat, error) {
 	return heartbeats, nil
 }
 
-// GetAllAgentStatuses retrieves the status of all agents based on heartbeats
+// GetAllAgentStatuses retrieves the status of all agents based on heartbeats.
+// Agents that haven't sent a heartbeat within the offlineThreshold are marked as offline.
 func (c *HTTPClient) GetAllAgentStatuses(offlineThreshold time.Duration) ([]AgentStatus, error) {
 	heartbeats, err := c.GetHeartbeats()
 	if err != nil {
@@ -245,7 +271,9 @@ func (c *HTTPClient) heartbeatToStatus(hb Heartbeat, now time.Time, offlineThres
 	return status
 }
 
-// TrackAgentStatus polls the MCP server for agent status updates
+// TrackAgentStatus polls the MCP server for a specific agent's status.
+// Returns the agent status based on its most recent heartbeat, or marks it
+// as offline if no heartbeat is found or it exceeds the offline threshold.
 func (c *HTTPClient) TrackAgentStatus(agentName string, offlineThreshold time.Duration) (AgentStatus, error) {
 	heartbeats, err := c.GetHeartbeats()
 	if err != nil {
