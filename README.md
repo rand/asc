@@ -40,13 +40,49 @@ A command-line orchestration tool for managing a local colony of AI coding agent
 
 ### Installation
 
-#### Option 1: Install from source (requires Go 1.21+)
+#### Option 1: Install via go install (requires Go 1.21+)
+
+The simplest way to install if you have Go installed:
 
 ```bash
 go install github.com/yourusername/asc@latest
 ```
 
-#### Option 2: Download pre-built binary
+This will install the `asc` binary to `$GOPATH/bin` (usually `~/go/bin`). Make sure this directory is in your PATH:
+
+```bash
+export PATH=$PATH:$(go env GOPATH)/bin
+```
+
+#### Option 2: Build from source (requires Go 1.21+)
+
+Clone the repository and build using the provided Makefile:
+
+```bash
+git clone https://github.com/yourusername/asc.git
+cd asc
+
+# Build for current platform
+make build
+
+# Install to $GOPATH/bin
+make install
+
+# Or build for all platforms
+make build-all
+```
+
+The Makefile provides several useful targets:
+- `make build` - Build for current platform
+- `make build-all` - Build for all platforms (Linux, macOS Intel, macOS ARM)
+- `make install` - Install to $GOPATH/bin
+- `make test` - Run all tests
+- `make clean` - Remove build artifacts
+- `make help` - Show all available targets
+
+#### Option 3: Download pre-built binary
+
+Download the appropriate binary for your platform from the releases page:
 
 ```bash
 # macOS (Apple Silicon)
@@ -59,10 +95,16 @@ curl -L https://github.com/yourusername/asc/releases/latest/download/asc-darwin-
 chmod +x asc
 sudo mv asc /usr/local/bin/
 
-# Linux
+# Linux (amd64)
 curl -L https://github.com/yourusername/asc/releases/latest/download/asc-linux-amd64 -o asc
 chmod +x asc
 sudo mv asc /usr/local/bin/
+```
+
+Verify the installation:
+
+```bash
+asc --version
 ```
 
 ### Initial Setup
@@ -381,26 +423,81 @@ Resize your terminal to at least 80x24 characters.
 ```bash
 git clone https://github.com/yourusername/asc.git
 cd asc
+
+# Build for current platform
+make build
+
+# Or use go directly
 go build -o asc main.go
 ```
 
 ### Running Tests
 
 ```bash
+# Run all tests
+make test
+
+# Run tests with coverage report
+make test-coverage
+
+# Or use go directly
 go test ./...
+go test -v -race -coverprofile=coverage.out ./...
+```
+
+### Development Workflow
+
+```bash
+# Format code
+make fmt
+
+# Run linter
+make vet
+
+# Run all checks (format, vet, test)
+make check
+
+# Build and run
+make run
+
+# Run in development mode with race detector
+make dev
 ```
 
 ### Building for Multiple Platforms
 
 ```bash
-# Linux
+# Build for all platforms (Linux, macOS Intel, macOS ARM)
+make build-all
+
+# Binaries will be in build/ directory:
+# - build/asc-darwin-amd64
+# - build/asc-darwin-arm64
+# - build/asc-linux-amd64
+
+# Or build manually for specific platforms
 GOOS=linux GOARCH=amd64 go build -o asc-linux-amd64
-
-# macOS Intel
 GOOS=darwin GOARCH=amd64 go build -o asc-darwin-amd64
-
-# macOS Apple Silicon
 GOOS=darwin GOARCH=arm64 go build -o asc-darwin-arm64
+```
+
+### Makefile Targets
+
+Run `make help` to see all available targets:
+
+```
+make build       - Build the binary for current platform
+make build-all   - Build binaries for all platforms
+make test        - Run all tests
+make install     - Install to $GOPATH/bin
+make clean       - Remove build artifacts
+make deps        - Download dependencies
+make tidy        - Tidy and verify dependencies
+make fmt         - Format Go code
+make vet         - Run go vet
+make lint        - Run golangci-lint
+make check       - Run all checks (fmt, vet, test)
+make release     - Prepare a release (build all platforms, run tests)
 ```
 
 ## Project Structure
