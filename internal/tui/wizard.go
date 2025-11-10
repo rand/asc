@@ -11,6 +11,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/yourusername/asc/internal/check"
+	"github.com/yourusername/asc/internal/config"
 	"github.com/yourusername/asc/internal/secrets"
 )
 
@@ -19,6 +20,7 @@ type wizardStep int
 
 const (
 	stepWelcome wizardStep = iota
+	stepTemplateSelection
 	stepChecking
 	stepCheckResults
 	stepInstallPrompt
@@ -36,6 +38,7 @@ type Wizard struct {
 	checker        check.Checker
 	checkResults   []check.CheckResult
 	secretsManager *secrets.Manager
+	templateName   string
 }
 
 // wizardModel is the bubbletea model for the wizard
@@ -46,6 +49,12 @@ type wizardModel struct {
 	secretsManager *secrets.Manager
 	width          int
 	height         int
+	templateName   string
+	
+	// Template selection
+	templates       []config.Template
+	customTemplates []config.Template
+	selectedTemplate int
 	
 	// API key inputs
 	claudeInput  textinput.Model
@@ -70,6 +79,11 @@ func NewWizard() *Wizard {
 		checker:        check.NewChecker("asc.toml", ".env"),
 		secretsManager: secrets.NewManager(),
 	}
+}
+
+// SetTemplate sets the template to use for configuration generation
+func (w *Wizard) SetTemplate(templateName string) {
+	w.templateName = templateName
 }
 
 // Run starts the wizard
@@ -118,14 +132,22 @@ func (w *Wizard) initialModel() wizardModel {
 	googleInput.EchoMode = textinput.EchoPassword
 	googleInput.EchoCharacter = '•'
 	
+	// Load templates
+	templates := config.ListTemplates()
+	customTemplates, _ := config.ListCustomTemplates()
+	
 	return wizardModel{
-		step:        stepWelcome,
-		checker:     w.checker,
-		claudeInput: claudeInput,
-		openaiInput: openaiInput,
-		googleInput: googleInput,
-		activeInput: 0,
-		apiKeys:     make(map[string]string),
+		step:            stepWelcome,
+		checker:         w.checker,
+		templateName:    w.templateName,
+		templates:       templates,
+		customTemplates: customTemplates,
+		selectedTemplate: 0,
+		claudeInput:     claudeInput,
+		openaiInput:     openaiInput,
+		googleInput:     googleInput,
+		activeInput:     0,
+		apiKeys:         make(map[string]string),
 	}
 }
 
@@ -147,6 +169,14 @@ func (m wizardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.step == stepAPIKeys {
 				return m.handleTab(msg.String() == "shift+tab")
 			}
+		case "up", "k":
+			if m.step == stepTemplateSelection {
+				return m.handleTemplateNav(-1)
+			}
+		case "down", "j":
+			if m.step == stepTemplateSelection {
+				return m.handleTemplateNav(1)
+			}
 		case "y", "Y":
 			if m.step == stepInstallPrompt || m.step == stepBackupPrompt {
 				m.confirmed = true
@@ -156,6 +186,10 @@ func (m wizardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.step == stepInstallPrompt || m.step == stepBackupPrompt {
 				m.confirmed = false
 				return m.handleEnter()
+			}
+		case "1", "2", "3", "4", "5", "6", "7", "8", "9":
+			if m.step == stepTemplateSelection {
+				return m.handleTemplateNumber(msg.String())
 			}
 		}
 		
@@ -208,6 +242,20 @@ func (m wizardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m wizardModel) handleEnter() (tea.Model, tea.Cmd) {
 	switch m.step {
 	case stepWelcome:
+		// If template was specified via flag, skip selection
+		if m.templateName != "" {
+			m.step = stepChecking
+			return m, runChecks(m.checker)
+		}
+		m.step = stepTemplateSelection
+		return m, nil
+		
+	case stepTemplateSelection:
+		// Store selected template name
+		allTemplates := append(m.templates, m.customTemplates...)
+		if m.selectedTemplate >= 0 && m.selectedTemplate < len(allTemplates) {
+			m.templateName = allTemplates[m.selectedTemplate].Name
+		}
 		m.step = stepChecking
 		return m, runChecks(m.checker)
 		
@@ -325,7 +373,7 @@ func (m wizardModel) handleEnter() (tea.Model, tea.Cmd) {
 		}
 		
 		m.step = stepGenerating
-		return m, generateConfigFiles(m.apiKeys)
+		return m, generateConfigFiles(m.apiKeys, m.templateName)
 		
 	case stepGenerating:
 		// After generating config, encrypt if enabled
@@ -371,6 +419,31 @@ func (m wizardModel) handleTab(reverse bool) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+func (m wizardModel) handleTemplateNav(delta int) (tea.Model, tea.Cmd) {
+	allTemplates := append(m.templates, m.customTemplates...)
+	m.selectedTemplate += delta
+	
+	if m.selectedTemplate < 0 {
+		m.selectedTemplate = len(allTemplates) - 1
+	} else if m.selectedTemplate >= len(allTemplates) {
+		m.selectedTemplate = 0
+	}
+	
+	return m, nil
+}
+
+func (m wizardModel) handleTemplateNumber(key string) (tea.Model, tea.Cmd) {
+	allTemplates := append(m.templates, m.customTemplates...)
+	num := int(key[0] - '1') // Convert '1'-'9' to 0-8
+	
+	if num >= 0 && num < len(allTemplates) {
+		m.selectedTemplate = num
+		return m.handleEnter()
+	}
+	
+	return m, nil
+}
+
 func (m wizardModel) updateInputs(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	
@@ -390,6 +463,8 @@ func (m wizardModel) View() string {
 	switch m.step {
 	case stepWelcome:
 		return m.viewWelcome()
+	case stepTemplateSelection:
+		return m.viewTemplateSelection()
 	case stepChecking:
 		return m.viewChecking()
 	case stepCheckResults:
@@ -443,6 +518,83 @@ func (m wizardModel) viewWelcome() string {
 	s.WriteString("  • Validating your setup\n")
 	s.WriteString("\n")
 	s.WriteString(promptStyle.Render("Press Enter to begin, or 'q' to quit"))
+	
+	return s.String()
+}
+
+func (m wizardModel) viewTemplateSelection() string {
+	titleStyle := lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("12")).
+		MarginTop(2).
+		MarginBottom(1)
+	
+	textStyle := lipgloss.NewStyle().
+		MarginBottom(1)
+	
+	selectedStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("10")).
+		Bold(true).
+		Background(lipgloss.Color("236"))
+	
+	normalStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("15"))
+	
+	descStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("240")).
+		Italic(true)
+	
+	helpStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("240")).
+		MarginTop(2)
+	
+	var s strings.Builder
+	s.WriteString(titleStyle.Render("📋 Select Configuration Template"))
+	s.WriteString("\n\n")
+	s.WriteString(textStyle.Render("Choose a template for your agent setup:"))
+	s.WriteString("\n\n")
+	
+	// Built-in templates
+	if len(m.templates) > 0 {
+		s.WriteString(lipgloss.NewStyle().Bold(true).Render("Built-in Templates:"))
+		s.WriteString("\n")
+		for i, tmpl := range m.templates {
+			prefix := "  "
+			if i == m.selectedTemplate {
+				prefix = "▶ "
+				s.WriteString(selectedStyle.Render(fmt.Sprintf("%s%d. %s", prefix, i+1, tmpl.Name)))
+			} else {
+				s.WriteString(normalStyle.Render(fmt.Sprintf("%s%d. %s", prefix, i+1, tmpl.Name)))
+			}
+			s.WriteString("\n")
+			s.WriteString(descStyle.Render(fmt.Sprintf("     %s", tmpl.Description)))
+			s.WriteString("\n")
+		}
+		s.WriteString("\n")
+	}
+	
+	// Custom templates
+	if len(m.customTemplates) > 0 {
+		s.WriteString(lipgloss.NewStyle().Bold(true).Render("Custom Templates:"))
+		s.WriteString("\n")
+		offset := len(m.templates)
+		for i, tmpl := range m.customTemplates {
+			idx := offset + i
+			prefix := "  "
+			if idx == m.selectedTemplate {
+				prefix = "▶ "
+				s.WriteString(selectedStyle.Render(fmt.Sprintf("%s%d. %s", prefix, idx+1, tmpl.Name)))
+			} else {
+				s.WriteString(normalStyle.Render(fmt.Sprintf("%s%d. %s", prefix, idx+1, tmpl.Name)))
+			}
+			s.WriteString("\n")
+			s.WriteString(descStyle.Render(fmt.Sprintf("     %s", tmpl.Description)))
+			s.WriteString("\n")
+		}
+		s.WriteString("\n")
+	}
+	
+	s.WriteString(helpStyle.Render("↑/↓ or j/k: Navigate | 1-9: Quick select | Enter: Confirm | q: Quit"))
 	
 	return s.String()
 }
@@ -636,10 +788,10 @@ func runChecks(checker check.Checker) tea.Cmd {
 	}
 }
 
-func generateConfigFiles(apiKeys map[string]string) tea.Cmd {
+func generateConfigFiles(apiKeys map[string]string, templateName string) tea.Cmd {
 	return func() tea.Msg {
 		// Generate asc.toml
-		if err := generateDefaultConfig(); err != nil {
+		if err := generateConfigFromTemplate(templateName); err != nil {
 			return generateCompleteMsg{err: err}
 		}
 		
@@ -731,31 +883,39 @@ func validateAPIKey(keyName, value string) bool {
 	return true
 }
 
-func generateDefaultConfig() error {
-	config := `[core]
-beads_db_path = "./project-repo"
-
-[services.mcp_agent_mail]
-start_command = "python -m mcp_agent_mail.server"
-url = "http://localhost:8765"
-
-[agent.main-planner]
-command = "python agent_adapter.py"
-model = "gemini"
-phases = ["planning", "design"]
-
-[agent.claude-implementer]
-command = "python agent_adapter.py"
-model = "claude"
-phases = ["implementation"]
-
-[agent.openai-tester]
-command = "python agent_adapter.py"
-model = "openai"
-phases = ["testing", "refactor"]
-`
+func generateConfigFromTemplate(templateName string) error {
+	// If no template specified, use default team template
+	if templateName == "" {
+		templateName = "team"
+	}
 	
-	return os.WriteFile("asc.toml", []byte(config), 0644)
+	// Try to get built-in template
+	var template *config.Template
+	var err error
+	
+	switch templateName {
+	case "solo":
+		template, err = config.GetTemplate(config.TemplateSolo)
+	case "team":
+		template, err = config.GetTemplate(config.TemplateTeam)
+	case "swarm":
+		template, err = config.GetTemplate(config.TemplateSwarm)
+	default:
+		// Try to load custom template
+		template, err = config.LoadCustomTemplateByName(templateName)
+	}
+	
+	if err != nil {
+		return fmt.Errorf("failed to load template '%s': %w", templateName, err)
+	}
+	
+	// Save template to asc.toml
+	return config.SaveTemplate(template, "asc.toml")
+}
+
+func generateDefaultConfig() error {
+	// Use team template as default
+	return generateConfigFromTemplate("team")
 }
 
 func generateEnvFile(apiKeys map[string]string) error {

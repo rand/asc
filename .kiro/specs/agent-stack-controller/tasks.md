@@ -434,8 +434,8 @@
     - Show active filters in log pane header
     - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5_
 
-- [ ] 24. Implement comprehensive health monitoring
-  - [ ] 24.1 Add health check system
+- [x] 24. Implement comprehensive health monitoring
+  - [x] 24.1 Add health check system
     - Ping agents every 30 seconds via heartbeat check
     - Detect unresponsive agents (no heartbeat for 2 minutes)
     - Detect crashed agents (process exited unexpectedly)
@@ -444,7 +444,7 @@
     - Log all health issues to ~/.asc/logs/health.log
     - _Requirements: 7.7, 3.2_
   
-  - [ ] 24.2 Add automatic recovery system
+  - [x] 24.2 Add automatic recovery system
     - Restart crashed agents automatically with backoff
     - Release file leases from stuck agents via MCP
     - Notify user of recovery actions in TUI log pane
@@ -453,8 +453,8 @@
     - Track recovery success rate per agent
     - _Requirements: 3.2, 3.3, 7.6_
 
-- [ ] 25. Enhance configuration system
-  - [ ] 25.1 Add configuration validation and suggestions
+- [x] 25. Enhance configuration system
+  - [x] 25.1 Add configuration validation and suggestions
     - Validate agent command exists in PATH before starting
     - Validate model is supported (claude, gemini, openai)
     - Validate phases are valid (planning, implementation, testing, etc.)
@@ -462,7 +462,7 @@
     - Suggest fixes for common configuration errors
     - _Requirements: 4.1, 4.2, 11.1, 11.2_
   
-  - [ ] 25.2 Add configuration templates
+  - [x] 25.2 Add configuration templates
     - Create template system for common agent setups
     - Add "asc init --template=solo" for single agent setup
     - Add "asc init --template=team" for planner, coder, tester setup
@@ -470,7 +470,7 @@
     - Allow users to save custom templates
     - _Requirements: 1.1, 1.6, 11.1, 11.2_
   
-  - [ ] 25.3 Add configuration hot-reload
+  - [x] 25.3 Add configuration hot-reload
     - Watch asc.toml for file changes using fsnotify
     - Reload configuration without full restart
     - Start new agents defined in updated config
@@ -479,15 +479,15 @@
     - Display reload notifications in TUI
     - _Requirements: 2.1, 2.2, 11.1, 11.2_
 
-- [ ] 26. Enhance logging and debugging
-  - [ ] 26.1 Add structured logging
+- [x] 26. Enhance logging and debugging
+  - [x] 26.1 Add structured logging
     - Use JSON format for machine-parseable logs
     - Include context fields: agent, task, phase, timestamp
     - Add correlation IDs for tracing requests across components
     - Support per-agent log levels (DEBUG, INFO, WARN, ERROR)
     - _Requirements: All commands_
   
-  - [ ] 26.2 Add debug mode
+  - [x] 26.2 Add debug mode
     - Add "asc up --debug" flag for verbose output
     - Show LLM prompts and responses in debug logs
     - Show file lease operations and conflicts
@@ -495,7 +495,7 @@
     - Display debug info in TUI when enabled
     - _Requirements: All commands_
   
-  - [ ] 26.3 Add log aggregation and analysis
+  - [x] 26.3 Add log aggregation and analysis
     - Collect logs from all agents into unified view
     - Display aggregated logs in TUI log pane
     - Support log export to file with filtering
@@ -504,8 +504,8 @@
     - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6_
 
 
-- [ ] 27. Implement vaporwave aesthetic design system
-  - [ ] 27.1 Create vaporwave color palette and theme system
+- [x] 27. Implement vaporwave aesthetic design system
+  - [x] 27.1 Create vaporwave color palette and theme system
     - Define core vaporwave color palette: neon pink (#FF71CE), electric blue (#01CDFE), purple (#B967FF), cyan (#05FFA1), sunset orange (#FFFB96)
     - Create gradient definitions for backgrounds and accents
     - Implement dark base colors: deep purple (#1A0933), midnight blue (#0D0221), dark teal (#0F0E17)
@@ -515,7 +515,7 @@
     - Add support for 256-color and true-color terminals
     - _Requirements: 12.1, 12.3_
   
-  - [ ] 27.2 Design elegant borders and frames with glow effects
+  - [x] 27.2 Design elegant borders and frames with glow effects
     - Create custom border styles with double-line and rounded corners
     - Implement gradient borders that transition between vaporwave colors
     - Add subtle glow/shadow effects using Unicode box-drawing characters
@@ -525,7 +525,7 @@
     - Add depth with layered borders and shadows
     - _Requirements: 12.1, 12.3_
   
-  - [ ] 27.3 Implement sophisticated typography and text styling
+  - [x] 27.3 Implement sophisticated typography and text styling
     - Use bold weights for headers with gradient color fills
     - Implement text shadows and outlines for depth
     - Add subtle letter-spacing for elegance
@@ -535,7 +535,7 @@
     - Add icon/emoji integration with proper spacing
     - _Requirements: 7.1, 8.1, 9.1, 12.1_
   
-  - [ ] 27.4 Design status indicators with luminous effects
+  - [x] 27.4 Design status indicators with luminous effects
     - Create glowing orbs for agent status (pulsing animations)
     - Implement progress bars with gradient fills and shine effects
     - Design task status badges with rounded corners and glow
@@ -545,7 +545,7 @@
     - Add sparkle/particle effects for active states
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 8.2, 12.1_
   
-  - [ ] 27.5 Implement grid and geometric background patterns
+  - [x] 27.5 Implement grid and geometric background patterns
     - Create subtle grid overlay with neon lines
     - Add perspective grid effect (vanishing point)
     - Implement geometric shapes (triangles, hexagons) as accents
@@ -555,7 +555,7 @@
     - Implement parallax effect for layered backgrounds
     - _Requirements: 12.2, 12.3_
   
-  - [ ] 27.6 Design modal dialogs and overlays with glass morphism
+  - [x] 27.6 Design modal dialogs and overlays with glass morphism
     - Create frosted glass effect for modal backgrounds
     - Implement backdrop blur simulation with transparency
     - Add gradient borders with glow effects
@@ -565,7 +565,7 @@
     - Add subtle animations (float, pulse, shimmer)
     - _Requirements: 8.3, 8.4, 10.1_
   
-  - [ ] 27.7 Implement smooth animations and transitions
+  - [x] 27.7 Implement smooth animations and transitions
     - Create easing functions (ease-in-out, cubic-bezier)
     - Implement color transition animations
     - Add fade effects for content changes
@@ -575,7 +575,7 @@
     - Add frame-based animation system with timing control
     - _Requirements: 10.2, 12.5_
   
-  - [ ] 27.8 Design footer and header with holographic effects
+  - [x] 27.8 Design footer and header with holographic effects
     - Create gradient header bar with animated color shift
     - Implement holographic text effect (rainbow shimmer)
     - Design keybinding display with neon highlights
@@ -585,7 +585,7 @@
     - Add subtle scan-line animation across header/footer
     - _Requirements: 10.4, 12.1_
   
-  - [ ] 27.9 Implement responsive layout with elegant spacing
+  - [x] 27.9 Implement responsive layout with elegant spacing
     - Use golden ratio (1.618) for proportions and spacing
     - Implement consistent padding and margins (8px grid system)
     - Create responsive breakpoints for different terminal sizes
@@ -595,7 +595,7 @@
     - Add breathing room with generous whitespace
     - _Requirements: 12.2, 12.5_
   
-  - [ ] 27.10 Create theme configuration and customization
+  - [x] 27.10 Create theme configuration and customization
     - Implement theme switching system (vaporwave, cyberpunk, minimal)
     - Add configuration file for custom color schemes
     - Create theme preview in TUI settings
@@ -605,7 +605,7 @@
     - Document theme customization guide
     - _Requirements: 11.1, 11.2, 12.1_
   
-  - [ ] 27.11 Polish and refinement
+  - [x] 27.11 Polish and refinement
     - Conduct visual design review and iteration
     - Optimize rendering performance for smooth 60fps
     - Test on various terminal emulators (iTerm2, Alacritty, Windows Terminal)
@@ -614,3 +614,220 @@
     - Create design documentation with screenshots
     - Gather user feedback and iterate
     - _Requirements: 12.1, 12.3, 12.5_
+
+- [ ] 28. Comprehensive testing and quality assurance
+  - [x] 28.1 Expand unit test coverage
+    - Achieve 80%+ code coverage for all Go packages
+    - Add table-driven tests for complex logic (config parsing, process management)
+    - Test error paths and edge cases (nil pointers, empty inputs, invalid data)
+    - Add tests for concurrent operations (process manager, WebSocket client)
+    - Test boundary conditions (max values, empty strings, zero values)
+    - Mock external dependencies (file system, network, exec commands)
+    - Add benchmarks for performance-critical code (rendering, animations)
+    - _Requirements: All_
+  
+  - [x] 28.2 Implement integration tests
+    - Test full command workflows (init → up → test → down)
+    - Test configuration loading and validation end-to-end
+    - Test process lifecycle (start → monitor → stop → cleanup)
+    - Test beads and MCP client integration with real services
+    - Test TUI interaction flows (navigation, modals, filtering)
+    - Test WebSocket reconnection and fallback to polling
+    - Test health monitoring and auto-recovery system
+    - Test configuration hot-reload with running agents
+    - _Requirements: All_
+  
+  - [x] 28.3 Add end-to-end tests
+    - Test complete agent stack startup and shutdown
+    - Test agent task execution from beads to completion
+    - Test multi-agent coordination and file lease conflicts
+    - Test error recovery scenarios (agent crash, MCP disconnect)
+    - Test long-running stability (24+ hour runs)
+    - Test resource cleanup (PIDs, logs, temp files)
+    - Test graceful degradation (missing dependencies, network issues)
+    - _Requirements: All_
+  
+  - [x] 28.4 Implement error handling tests
+    - Test all error paths in each package
+    - Test error propagation and wrapping
+    - Test user-facing error messages for clarity
+    - Test recovery from transient errors (network, file system)
+    - Test handling of invalid user input
+    - Test timeout handling (API calls, process starts)
+    - Test panic recovery and graceful shutdown
+    - _Requirements: All_
+  
+  - [x] 28.5 Add developer experience improvements
+    - Create development setup guide (CONTRIBUTING.md)
+    - Add pre-commit hooks for linting and formatting
+    - Set up CI/CD pipeline (GitHub Actions or similar)
+    - Add automated test runs on pull requests
+    - Create code review checklist
+    - Add debugging guides for common issues
+    - Document testing best practices
+    - Create troubleshooting playbook
+    - _Requirements: All_
+  
+  - [x] 28.6 Implement quality gates and monitoring
+    - Set up code coverage reporting (codecov or similar)
+    - Add static analysis tools (golangci-lint, gosec)
+    - Implement dependency vulnerability scanning
+    - Add license compliance checking
+    - Set up performance regression testing
+    - Monitor test execution time and flakiness
+    - Create quality metrics dashboard
+    - _Requirements: All_
+  
+  - [x] 28.7 Review test suite outcomes and address gaps
+    - [x] 28.7.1 Analyze current test coverage and identify gaps
+      - Run comprehensive coverage analysis across all packages
+      - Identify critical paths with insufficient coverage (<80%)
+      - Review coverage reports for untested error paths
+      - Document coverage gaps by package and priority
+      - Create action plan to address high-priority gaps
+      - _Requirements: All_
+    
+    - [x] 28.7.2 Review and fix failing tests
+      - Identify all currently failing tests across the suite
+      - Categorize failures (bugs, outdated tests, environment issues)
+      - Fix or update failing unit tests
+      - Fix or update failing integration tests
+      - Fix or update failing E2E tests
+      - Document any tests that need to be skipped with justification
+      - _Requirements: All_
+    
+    - [x] 28.7.3 Address flaky tests identified by monitoring
+      - Review flakiness reports from test-quality workflow
+      - Investigate root causes (race conditions, timing, external deps)
+      - Fix flaky tests by adding proper synchronization
+      - Replace time.Sleep with proper wait conditions
+      - Add retries for inherently flaky operations
+      - Verify fixes with multiple test runs (20+ iterations)
+      - _Requirements: All_
+    
+    - [x] 28.7.4 Improve test quality and maintainability
+      - Refactor tests with excessive duplication
+      - Add table-driven tests where appropriate
+      - Improve test naming for clarity
+      - Add missing test documentation and comments
+      - Ensure all tests follow testing best practices
+      - Add helper functions to reduce test boilerplate
+      - _Requirements: All_
+    
+    - [x] 28.7.5 Add missing unit tests for core functionality
+      - Add tests for uncovered configuration parsing logic
+      - Add tests for uncovered process management operations
+      - Add tests for uncovered TUI rendering logic
+      - Add tests for uncovered client implementations
+      - Add tests for uncovered error handling paths
+      - Ensure all exported functions have test coverage
+      - _Requirements: All_
+    
+    - [x] 28.7.6 Enhance integration test coverage
+      - Add integration tests for multi-component workflows
+      - Test configuration hot-reload functionality
+      - Test health monitoring and auto-recovery
+      - Test WebSocket reconnection scenarios
+      - Test agent lifecycle management end-to-end
+      - Test error recovery and graceful degradation
+      - _Requirements: All_
+    
+    - [x] 28.7.7 Expand E2E test scenarios
+      - Add E2E tests for complete user workflows
+      - Test asc init → up → down workflow
+      - Test agent task execution from start to finish
+      - Test multi-agent coordination scenarios
+      - Test failure and recovery scenarios
+      - Add stress tests for high load conditions
+      - _Requirements: All_
+    
+    - [x] 28.7.8 Review and improve test performance
+      - Identify and optimize slow tests (>5s)
+      - Add t.Parallel() to independent tests
+      - Mock expensive operations (I/O, network, time)
+      - Reduce test setup overhead
+      - Optimize test data generation
+      - Ensure test suite completes in <2 minutes
+      - _Requirements: All_
+    
+    - [x] 28.7.9 Validate test environment and dependencies
+      - Ensure all test dependencies are documented
+      - Verify tests work in CI environment
+      - Test on multiple platforms (Linux, macOS)
+      - Test with different Go versions (1.21, 1.22)
+      - Add setup instructions for local test execution
+      - Document any platform-specific test requirements
+      - _Requirements: All_
+    
+    - [x] 28.7.10 Create test gap remediation report
+      - Document all identified gaps and their priority
+      - Track progress on addressing each gap
+      - Report final coverage metrics after improvements
+      - Document any remaining gaps with justification
+      - Create recommendations for ongoing test maintenance
+      - Update testing documentation with lessons learned
+      - _Requirements: All_
+  
+  - [x] 28.8 Test user flows and usability
+    - Test first-time user experience (asc init)
+    - Test common workflows (starting agents, viewing status)
+    - Test error recovery from user perspective
+    - Test keyboard navigation and shortcuts
+    - Test terminal resize and responsiveness
+    - Test accessibility features (high contrast mode)
+    - Gather user feedback through beta testing
+    - Document common user issues and solutions
+    - _Requirements: All_
+  
+  - [x] 28.9 Add dependency management and updates
+    - Document all dependencies and their purposes
+    - Set up automated dependency updates (Dependabot)
+    - Test compatibility with dependency updates
+    - Pin critical dependencies to stable versions
+    - Create dependency upgrade testing workflow
+    - Monitor for security advisories
+    - Document breaking changes in dependencies
+    - _Requirements: All_
+  
+  - [x] 28.10 Implement issue detection and remediation
+    - Add health check diagnostics (asc doctor command)
+    - Detect common configuration issues automatically
+    - Provide actionable remediation steps
+    - Test recovery from corrupted state (PIDs, logs)
+    - Add self-healing capabilities where possible
+    - Create issue reporting template
+    - Document known issues and workarounds
+    - _Requirements: All_
+  
+  - [x] 28.11 Performance testing and optimization
+    - Benchmark TUI rendering performance
+    - Test memory usage under load (many agents, tasks, logs)
+    - Profile CPU usage and identify bottlenecks
+    - Test startup and shutdown time
+    - Optimize hot paths (event loop, rendering)
+    - Test with large datasets (1000+ tasks, 10000+ log entries)
+    - Add performance regression tests
+    - Document performance characteristics
+    - _Requirements: All_
+  
+  - [x] 28.12 Security testing and hardening
+    - Test API key handling and storage security
+    - Test file permission handling (.env, logs, PIDs)
+    - Test input validation and sanitization
+    - Test command injection vulnerabilities
+    - Test path traversal vulnerabilities
+    - Add security scanning to CI/CD
+    - Document security best practices
+    - Create security incident response plan
+    - _Requirements: 1.5, 4.3, All_
+  
+  - [x] 28.13 Documentation and knowledge base
+    - Create comprehensive API documentation
+    - Add architecture decision records (ADRs)
+    - Document all configuration options
+    - Create video tutorials for common tasks
+    - Build FAQ from user questions
+    - Document upgrade and migration guides
+    - Create operator's handbook
+    - Add inline code examples
+    - _Requirements: All_

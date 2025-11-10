@@ -21,6 +21,8 @@ import (
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/yourusername/asc/internal/logger"
 )
 
 // MessageType represents the type of MCP message.
@@ -65,6 +67,8 @@ type MCPClient interface {
 	GetMessages(since time.Time) ([]Message, error)
 	SendMessage(msg Message) error
 	GetAgentStatus(agentName string) (AgentStatus, error)
+	GetAllAgentStatuses(offlineThreshold time.Duration) ([]AgentStatus, error)
+	ReleaseAgentLeases(agentName string) error
 }
 
 // HTTPClient implements the MCPClient interface using HTTP requests.
@@ -98,11 +102,23 @@ func NewHTTPClient(baseURL string) *HTTPClient {
 func (c *HTTPClient) GetMessages(since time.Time) ([]Message, error) {
 	url := fmt.Sprintf("%s/messages?since=%d", c.baseURL, since.Unix())
 	
+	logger.WithFields(logger.Fields{
+		"url":   url,
+		"since": since,
+	}).Debug("Fetching messages from MCP server")
+	
 	var messages []Message
 	err := c.doRequestWithRetry("GET", url, nil, &messages)
 	if err != nil {
+		logger.WithFields(logger.Fields{
+			"url": url,
+		}).Error("Failed to get messages from MCP: %v", err)
 		return nil, fmt.Errorf("failed to get messages: %w", err)
 	}
+	
+	logger.WithFields(logger.Fields{
+		"message_count": len(messages),
+	}).Debug("Successfully fetched messages from MCP")
 	
 	return messages, nil
 }
@@ -112,15 +128,32 @@ func (c *HTTPClient) GetMessages(since time.Time) ([]Message, error) {
 func (c *HTTPClient) SendMessage(msg Message) error {
 	url := fmt.Sprintf("%s/messages", c.baseURL)
 	
+	logger.WithFields(logger.Fields{
+		"url":    url,
+		"type":   msg.Type,
+		"source": msg.Source,
+	}).Debug("Sending message to MCP server")
+	
 	jsonData, err := json.Marshal(msg)
 	if err != nil {
+		logger.Error("Failed to marshal message: %v", err)
 		return fmt.Errorf("failed to marshal message: %w", err)
 	}
 	
 	err = c.doRequestWithRetry("POST", url, jsonData, nil)
 	if err != nil {
+		logger.WithFields(logger.Fields{
+			"url":    url,
+			"type":   msg.Type,
+			"source": msg.Source,
+		}).Error("Failed to send message to MCP: %v", err)
 		return fmt.Errorf("failed to send message: %w", err)
 	}
+	
+	logger.WithFields(logger.Fields{
+		"type":   msg.Type,
+		"source": msg.Source,
+	}).Debug("Successfully sent message to MCP")
 	
 	return nil
 }
@@ -295,4 +328,30 @@ func (c *HTTPClient) TrackAgentStatus(agentName string, offlineThreshold time.Du
 		State:    StateOffline,
 		LastSeen: time.Time{},
 	}, nil
+}
+
+// ReleaseAgentLeases releases all file leases held by a specific agent.
+// This is typically used during recovery when an agent is stuck or unresponsive.
+// Returns an error if the request fails.
+func (c *HTTPClient) ReleaseAgentLeases(agentName string) error {
+	url := fmt.Sprintf("%s/leases/release/%s", c.baseURL, agentName)
+	
+	logger.WithFields(logger.Fields{
+		"agent": agentName,
+		"url":   url,
+	}).Debug("Releasing file leases for agent")
+	
+	err := c.doRequestWithRetry("POST", url, nil, nil)
+	if err != nil {
+		logger.WithFields(logger.Fields{
+			"agent": agentName,
+		}).Error("Failed to release leases: %v", err)
+		return fmt.Errorf("failed to release leases for agent %s: %w", agentName, err)
+	}
+	
+	logger.WithFields(logger.Fields{
+		"agent": agentName,
+	}).Info("Successfully released file leases for agent")
+	
+	return nil
 }

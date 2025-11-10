@@ -1,12 +1,16 @@
 package tui
 
 import (
+	"os"
+	"path/filepath"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/yourusername/asc/internal/beads"
 	"github.com/yourusername/asc/internal/config"
+	"github.com/yourusername/asc/internal/health"
+	"github.com/yourusername/asc/internal/logger"
 	"github.com/yourusername/asc/internal/mcp"
 	"github.com/yourusername/asc/internal/process"
 )
@@ -14,18 +18,23 @@ import (
 // Model represents the TUI application state
 type Model struct {
 	// Configuration
-	config config.Config
+	config        config.Config
+	configWatcher *config.Watcher       // Watches for config file changes
+	reloadManager *config.ReloadManager // Manages config reload and agent lifecycle
 
 	// Data sources
-	beadsClient beads.BeadsClient
-	mcpClient   mcp.MCPClient
-	wsClient    *mcp.WebSocketClient // WebSocket client for real-time updates
-	procManager process.ProcessManager
+	beadsClient   beads.BeadsClient
+	mcpClient     mcp.MCPClient
+	wsClient      *mcp.WebSocketClient // WebSocket client for real-time updates
+	procManager   process.ProcessManager
+	healthMonitor *health.Monitor // Health monitoring system
+	logAggregator *logger.LogAggregator // Log aggregation system
 
 	// State
-	agents   []mcp.AgentStatus
-	tasks    []beads.Task
-	messages []mcp.Message
+	agents       []mcp.AgentStatus
+	tasks        []beads.Task
+	messages     []mcp.Message
+	healthIssues []health.HealthIssue
 
 	// UI state
 	width         int
@@ -51,6 +60,13 @@ type Model struct {
 	logFilterAgent  string // Filter logs by agent name
 	logFilterType   string // Filter logs by message type
 
+	// Reload notification state
+	reloadNotification string    // Message to display for config reload
+	reloadNotificationTime time.Time // When the notification was shown
+
+	// Debug mode
+	debugMode bool // Whether debug mode is enabled
+
 	// Error state
 	err error
 }
@@ -62,15 +78,25 @@ func NewModel(
 	mcpClient mcp.MCPClient,
 	procManager process.ProcessManager,
 ) Model {
+	// Initialize log aggregator
+	homeDir, _ := os.UserHomeDir()
+	logsDir := filepath.Join(homeDir, ".asc", "logs")
+	logAggregator := logger.NewLogAggregator(logsDir, 1000) // Keep last 1000 entries
+
 	return Model{
 		config:         cfg,
+		configWatcher:  nil, // Will be initialized in Init
+		reloadManager:  nil, // Will be initialized in Init
 		beadsClient:    beadsClient,
 		mcpClient:      mcpClient,
 		wsClient:       nil, // Will be initialized in Init if WebSocket URL is available
 		procManager:    procManager,
+		healthMonitor:  nil, // Will be initialized in Init
+		logAggregator:  logAggregator,
 		agents:         []mcp.AgentStatus{},
 		tasks:          []beads.Task{},
 		messages:       []mcp.Message{},
+		healthIssues:   []health.HealthIssue{},
 		lastRefresh:    time.Now(),
 		wsConnected:    false,
 		beadsConnected: false,
@@ -87,6 +113,42 @@ type wsEventMsg mcp.Event
 func (m Model) Init() tea.Cmd {
 	cmds := []tea.Cmd{
 		refreshDataCmd(m), // Initial data load
+	}
+
+	// Initialize health monitor
+	if monitor, err := health.NewMonitor(m.mcpClient, m.procManager, m.config); err == nil {
+		m.healthMonitor = monitor
+		// Apply auto-recovery configuration from config file
+		// If not specified (nil), it defaults to true (enabled)
+		if m.config.Core.AutoRecovery != nil {
+			m.healthMonitor.SetAutoRecovery(*m.config.Core.AutoRecovery)
+		}
+		// Otherwise, keep the default (true) from NewMonitor
+		m.healthMonitor.Start()
+	}
+
+	// Initialize configuration hot-reload
+	if watcher, err := config.NewWatcher(config.DefaultConfigPath()); err == nil {
+		m.configWatcher = watcher
+		
+		// Create reload manager with environment variables
+		envVars := m.getEnvVars()
+		// Wrap the process manager to adapt the interface
+		adaptedProcManager := newProcessManagerAdapter(m.procManager)
+		m.reloadManager = config.NewReloadManager(&m.config, adaptedProcManager, envVars)
+		
+		// Register reload callback
+		m.configWatcher.OnReload(func(newConfig *config.Config) error {
+			// This will be called in a goroutine, so we need to send a message to the TUI
+			// We'll handle the actual reload in the Update function
+			return nil
+		})
+		
+		// Start watching
+		if err := m.configWatcher.Start(); err == nil {
+			// Start listening for config reload events
+			cmds = append(cmds, waitForConfigReloadCmd(m.configWatcher))
+		}
 	}
 
 	// Try to initialize WebSocket connection for real-time MCP updates
@@ -154,9 +216,53 @@ func (m Model) GetError() error {
 	return m.err
 }
 
+// SetDebugMode enables or disables debug mode in the TUI
+func (m *Model) SetDebugMode(debug bool) {
+	m.debugMode = debug
+}
+
 // Cleanup closes any open connections and performs cleanup
 func (m *Model) Cleanup() {
 	if m.wsClient != nil {
 		m.wsClient.Close()
+	}
+	if m.healthMonitor != nil {
+		m.healthMonitor.Stop()
+	}
+	if m.configWatcher != nil {
+		m.configWatcher.Stop()
+	}
+}
+
+// getEnvVars returns environment variables needed for agents (API keys, etc.)
+func (m Model) getEnvVars() map[string]string {
+	envVars := make(map[string]string)
+	
+	// Get API keys from environment
+	apiKeys := []string{
+		"CLAUDE_API_KEY",
+		"OPENAI_API_KEY",
+		"GOOGLE_API_KEY",
+	}
+	
+	for _, key := range apiKeys {
+		if value := os.Getenv(key); value != "" {
+			envVars[key] = value
+		}
+	}
+	
+	return envVars
+}
+
+// configReloadMsg is sent when the configuration file changes
+type configReloadMsg struct {
+	newConfig *config.Config
+}
+
+// waitForConfigReloadCmd waits for configuration reload events
+func waitForConfigReloadCmd(watcher *config.Watcher) tea.Cmd {
+	return func() tea.Msg {
+		newConfig := <-watcher.Events()
+		return configReloadMsg{newConfig: newConfig}
 	}
 }

@@ -1,0 +1,281 @@
+name: Performance Monitoring
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run weekly on Monday at 00:00 UTC
+    - cron: '0 0 * * 1'
+  workflow_dispatch:
+
+jobs:
+  benchmark:
+    name: Run Benchmarks
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+      
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      
+      - name: Run benchmarks
+        run: |
+          go test -bench=. -benchmem -benchtime=3s ./... | tee benchmark-results.txt
+      
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: benchmark-results.txt
+      
+      - name: Comment PR with results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const results = fs.readFileSync('benchmark-results.txt', 'utf8');
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## Benchmark Results\n\n\`\`\`\n${results}\n\`\`\`\n\n*Benchmarks run on ${context.sha.substring(0, 7)}*`
+            });
+
+  performance-tests:
+    name: Performance Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+      
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      
+      - name: Run performance regression tests
+        run: |
+          go test -v -run=TestPerformanceRegression ./test | tee performance-tests.txt
+      
+      - name: Run memory usage tests
+        run: |
+          go test -v -run=TestMemoryUsageUnderLoad ./test | tee -a performance-tests.txt
+      
+      - name: Run startup/shutdown tests
+        run: |
+          go test -v -run=TestStartupTime ./test | tee -a performance-tests.txt
+          go test -v -run=TestShutdownTime ./test | tee -a performance-tests.txt
+      
+      - name: Run large dataset tests
+        run: |
+          go test -v -run=TestLargeDatasetPerformance ./test | tee -a performance-tests.txt
+      
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-test-results
+          path: performance-tests.txt
+      
+      - name: Check for regressions
+        run: |
+          if grep -q "FAIL" performance-tests.txt; then
+            echo "::error::Performance regression detected"
+            exit 1
+          fi
+
+  profile:
+    name: Generate Profiles
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+      
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      
+      - name: Create profiles directory
+        run: mkdir -p profiles
+      
+      - name: Generate CPU profiles
+        run: |
+          go test -bench=BenchmarkTUIRendering -cpuprofile=profiles/cpu-tui.prof -benchtime=10s ./test || true
+          go test -bench=BenchmarkLoad -cpuprofile=profiles/cpu-config.prof -benchtime=10s ./internal/config || true
+      
+      - name: Generate memory profiles
+        run: |
+          go test -bench=BenchmarkTUIRenderingLargeDataset -memprofile=profiles/mem-tui.prof -benchtime=10s ./test || true
+          go test -bench=BenchmarkAggregatorMemoryUsage -memprofile=profiles/mem-logger.prof -benchtime=5s ./internal/logger || true
+      
+      - name: Analyze profiles
+        run: |
+          echo "## CPU Profile Analysis (TUI)" > profile-analysis.txt
+          go tool pprof -top -nodecount=20 profiles/cpu-tui.prof >> profile-analysis.txt 2>&1 || true
+          echo "" >> profile-analysis.txt
+          echo "## Memory Profile Analysis (TUI)" >> profile-analysis.txt
+          go tool pprof -top -nodecount=20 -alloc_space profiles/mem-tui.prof >> profile-analysis.txt 2>&1 || true
+      
+      - name: Upload profiles
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-profiles
+          path: |
+            profiles/
+            profile-analysis.txt
+      
+      - name: Comment PR with profile summary
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const analysis = fs.readFileSync('profile-analysis.txt', 'utf8');
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## Profile Analysis\n\n\`\`\`\n${analysis}\n\`\`\`\n\n*Profiles generated on ${context.sha.substring(0, 7)}*`
+            });
+
+  compare:
+    name: Compare with Baseline
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+      
+      - name: Run benchmarks on PR
+        run: |
+          go test -bench=. -benchmem -benchtime=3s ./... > pr-benchmarks.txt
+      
+      - name: Checkout base branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.base_ref }}
+      
+      - name: Run benchmarks on base
+        run: |
+          go test -bench=. -benchmem -benchtime=3s ./... > base-benchmarks.txt
+      
+      - name: Install benchstat
+        run: go install golang.org/x/perf/cmd/benchstat@latest
+      
+      - name: Compare benchmarks
+        run: |
+          benchstat base-benchmarks.txt pr-benchmarks.txt > comparison.txt || true
+      
+      - name: Comment with comparison
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const comparison = fs.readFileSync('comparison.txt', 'utf8');
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## Performance Comparison\n\n\`\`\`\n${comparison}\n\`\`\`\n\n*Comparison between base and PR*`
+            });
+
+  report:
+    name: Generate Report
+    runs-on: ubuntu-latest
+    needs: [benchmark, performance-tests, profile]
+    if: always()
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+      
+      - name: Generate performance report
+        run: |
+          cat > performance-report.md << 'EOF'
+          # Performance Report
+          
+          Generated: $(date)
+          Commit: ${{ github.sha }}
+          
+          ## Benchmark Results
+          
+          ```
+          $(cat benchmark-results/benchmark-results.txt 2>/dev/null || echo "No results available")
+          ```
+          
+          ## Performance Tests
+          
+          ```
+          $(cat performance-test-results/performance-tests.txt 2>/dev/null || echo "No results available")
+          ```
+          
+          ## Profile Analysis
+          
+          ```
+          $(cat performance-profiles/profile-analysis.txt 2>/dev/null || echo "No analysis available")
+          ```
+          
+          ## Summary
+          
+          - Benchmarks: $(grep -c "Benchmark" benchmark-results/benchmark-results.txt 2>/dev/null || echo "0") tests
+          - Performance Tests: $(grep -c "PASS\|FAIL" performance-test-results/performance-tests.txt 2>/dev/null || echo "0") tests
+          - Profiles Generated: $(ls -1 performance-profiles/*.prof 2>/dev/null | wc -l || echo "0") profiles
+          
+          EOF
+      
+      - name: Upload report
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-report
+          path: performance-report.md

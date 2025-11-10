@@ -45,6 +45,15 @@ func (m Model) renderAgentPane(width, height int) string {
 		statusMap[agent.Name] = agent
 	}
 	
+	// Build health issue map for quick lookup
+	healthIssueMap := make(map[string]string)
+	for _, issue := range m.healthIssues {
+		// Store the most severe issue per agent
+		if _, exists := healthIssueMap[issue.AgentName]; !exists || issue.Severity == "critical" {
+			healthIssueMap[issue.AgentName] = string(issue.Type)
+		}
+	}
+	
 	// Get sorted agent names for consistent ordering
 	agentNames := m.getAgentNames()
 	
@@ -59,7 +68,8 @@ func (m Model) renderAgentPane(width, height int) string {
 			}
 		}
 		
-		line := m.formatAgentLine(status, contentWidth, i+1, i == m.selectedAgentIndex)
+		healthIssue := healthIssueMap[agentName]
+		line := m.formatAgentLine(status, healthIssue, contentWidth, i+1, i == m.selectedAgentIndex)
 		lines = append(lines, line)
 	}
 	
@@ -74,24 +84,55 @@ func (m Model) renderAgentPane(width, height int) string {
 	// Join lines and apply border with title
 	contentStr := strings.Join(content, "\n")
 	
+	// Add health summary if there are issues
+	healthSummary := ""
+	if m.healthMonitor != nil && len(m.healthIssues) > 0 {
+		summary := m.healthMonitor.GetHealthSummary()
+		healthSummary = lipgloss.NewStyle().Foreground(lipgloss.Color("9")).Render("⚠ " + summary)
+	}
+	
 	// Add keybindings hint
 	hint := lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render("1-9:select p:pause k:kill R:restart l:logs")
+	
+	header := lipgloss.JoinVertical(
+		lipgloss.Left,
+		lipgloss.NewStyle().Bold(true).Render("Agent Status"),
+		hint,
+	)
+	
+	if healthSummary != "" {
+		header = lipgloss.JoinVertical(lipgloss.Left, header, healthSummary)
+	}
 	
 	return agentPaneBorder.
 		Width(width - 2).
 		Height(height - 2).
 		Render(lipgloss.JoinVertical(
 			lipgloss.Left,
-			lipgloss.NewStyle().Bold(true).Render("Agent Status"),
-			hint,
+			header,
 			contentStr,
 		))
 }
 
-// formatAgentLine formats a single agent status line
-func (m Model) formatAgentLine(status mcp.AgentStatus, maxWidth int, number int, selected bool) string {
+// formatAgentLine formats a single agent status line with health indicator
+func (m Model) formatAgentLine(status mcp.AgentStatus, healthIssue string, maxWidth int, number int, selected bool) string {
 	// Get icon and style based on state
 	icon, style := m.getAgentIconAndStyle(status.State)
+	
+	// Add health indicator if there's an issue
+	healthIndicator := ""
+	if healthIssue != "" {
+		switch healthIssue {
+		case "crashed":
+			healthIndicator = " ⚠"
+			style = styleError // Override with error style
+		case "unresponsive":
+			healthIndicator = " ⚠"
+			style = styleError // Override with error style
+		case "stuck":
+			healthIndicator = " ⏱"
+		}
+	}
 	
 	// Format the status text
 	var statusText string
@@ -119,8 +160,8 @@ func (m Model) formatAgentLine(status mcp.AgentStatus, maxWidth int, number int,
 		style = style.Background(lipgloss.Color("237")) // Highlight background
 	}
 	
-	// Build the line: number + icon + name + status
-	line := fmt.Sprintf("%s %s %s - %s", prefix, icon, status.Name, statusText)
+	// Build the line: number + icon + name + status + health indicator
+	line := fmt.Sprintf("%s %s %s - %s%s", prefix, icon, status.Name, statusText, healthIndicator)
 	
 	// Truncate if too long
 	if len(line) > maxWidth {

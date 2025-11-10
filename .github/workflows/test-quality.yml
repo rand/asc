@@ -1,0 +1,349 @@
+name: Test Quality Monitoring
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run daily at 6:00 AM UTC
+    - cron: '0 6 * * *'
+
+jobs:
+  test-timing:
+    name: Monitor Test Execution Time
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Run tests with timing
+        run: |
+          echo "Running tests with detailed timing..."
+          go test -v -json ./... 2>&1 | tee test-output.json
+          
+      - name: Analyze test timing
+        run: |
+          cat > analyze_timing.go << 'EOF'
+          package main
+          
+          import (
+              "bufio"
+              "encoding/json"
+              "fmt"
+              "os"
+              "sort"
+              "time"
+          )
+          
+          type TestEvent struct {
+              Time    time.Time
+              Action  string
+              Package string
+              Test    string
+              Elapsed float64
+          }
+          
+          type TestTiming struct {
+              Name    string
+              Package string
+              Elapsed float64
+          }
+          
+          func main() {
+              file, _ := os.Open("test-output.json")
+              defer file.Close()
+              
+              scanner := bufio.NewScanner(file)
+              timings := []TestTiming{}
+              
+              for scanner.Scan() {
+                  var event TestEvent
+                  if err := json.Unmarshal(scanner.Bytes(), &event); err != nil {
+                      continue
+                  }
+                  
+                  if event.Action == "pass" || event.Action == "fail" {
+                      if event.Test != "" && event.Elapsed > 0 {
+                          timings = append(timings, TestTiming{
+                              Name:    event.Test,
+                              Package: event.Package,
+                              Elapsed: event.Elapsed,
+                          })
+                      }
+                  }
+              }
+              
+              // Sort by elapsed time (slowest first)
+              sort.Slice(timings, func(i, j int) bool {
+                  return timings[i].Elapsed > timings[j].Elapsed
+              })
+              
+              fmt.Println("# Test Timing Analysis")
+              fmt.Println()
+              fmt.Println("## Slowest Tests (Top 20)")
+              fmt.Println()
+              fmt.Println("| Test | Package | Duration |")
+              fmt.Println("|------|---------|----------|")
+              
+              count := 20
+              if len(timings) < count {
+                  count = len(timings)
+              }
+              
+              for i := 0; i < count; i++ {
+                  fmt.Printf("| %s | %s | %.3fs |\n",
+                      timings[i].Name,
+                      timings[i].Package,
+                      timings[i].Elapsed)
+              }
+              
+              // Calculate statistics
+              var total float64
+              for _, t := range timings {
+                  total += t.Elapsed
+              }
+              
+              fmt.Println()
+              fmt.Println("## Statistics")
+              fmt.Println()
+              fmt.Printf("- Total tests: %d\n", len(timings))
+              fmt.Printf("- Total time: %.2fs\n", total)
+              if len(timings) > 0 {
+                  fmt.Printf("- Average time: %.3fs\n", total/float64(len(timings)))
+                  fmt.Printf("- Slowest test: %.3fs\n", timings[0].Elapsed)
+              }
+              
+              // Flag slow tests
+              fmt.Println()
+              fmt.Println("## Warnings")
+              fmt.Println()
+              slowCount := 0
+              for _, t := range timings {
+                  if t.Elapsed > 5.0 {
+                      fmt.Printf("⚠️  Slow test detected: %s (%.2fs)\n", t.Name, t.Elapsed)
+                      slowCount++
+                  }
+              }
+              if slowCount == 0 {
+                  fmt.Println("✅ No slow tests detected (all tests < 5s)")
+              }
+          }
+          EOF
+          
+          go run analyze_timing.go > test-timing-report.md
+          cat test-timing-report.md
+          
+      - name: Upload timing report
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-timing-report
+          path: test-timing-report.md
+
+  flakiness-detection:
+    name: Detect Flaky Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        run: [1, 2, 3, 4, 5]  # Run tests 5 times
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Run tests (attempt ${{ matrix.run }})
+        id: test
+        continue-on-error: true
+        run: |
+          echo "Test run ${{ matrix.run }}"
+          go test -v -json ./... > test-run-${{ matrix.run }}.json 2>&1
+          
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        with:
+          name: flakiness-test-results
+          path: test-run-${{ matrix.run }}.json
+
+  analyze-flakiness:
+    name: Analyze Test Flakiness
+    runs-on: ubuntu-latest
+    needs: flakiness-detection
+    if: always()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download test results
+        uses: actions/download-artifact@v3
+        with:
+          name: flakiness-test-results
+
+      - name: Analyze flakiness
+        run: |
+          cat > analyze_flakiness.sh << 'EOF'
+          #!/bin/bash
+          
+          echo "# Test Flakiness Analysis"
+          echo ""
+          echo "Analyzing test results from 5 runs..."
+          echo ""
+          
+          # Extract test results
+          declare -A test_results
+          declare -A test_failures
+          
+          for i in {1..5}; do
+              if [ -f "test-run-$i.json" ]; then
+                  while IFS= read -r line; do
+                      test_name=$(echo "$line" | jq -r 'select(.Test != null) | .Test' 2>/dev/null)
+                      action=$(echo "$line" | jq -r 'select(.Action != null) | .Action' 2>/dev/null)
+                      
+                      if [ -n "$test_name" ] && [ "$action" = "fail" ]; then
+                          test_failures["$test_name"]=$((${test_failures["$test_name"]:-0} + 1))
+                      fi
+                      
+                      if [ -n "$test_name" ] && ([ "$action" = "pass" ] || [ "$action" = "fail" ]); then
+                          test_results["$test_name"]=$((${test_results["$test_name"]:-0} + 1))
+                      fi
+                  done < "test-run-$i.json"
+              fi
+          done
+          
+          echo "## Flaky Tests Detected"
+          echo ""
+          
+          flaky_found=0
+          for test in "${!test_failures[@]}"; do
+              failures=${test_failures[$test]}
+              total=${test_results[$test]:-0}
+              
+              # A test is flaky if it fails sometimes but not always
+              if [ $failures -gt 0 ] && [ $failures -lt $total ]; then
+                  echo "⚠️  **$test**"
+                  echo "   - Failed: $failures/$total runs"
+                  echo "   - Flakiness rate: $(( failures * 100 / total ))%"
+                  echo ""
+                  flaky_found=1
+              fi
+          done
+          
+          if [ $flaky_found -eq 0 ]; then
+              echo "✅ No flaky tests detected"
+          fi
+          
+          echo ""
+          echo "## Consistently Failing Tests"
+          echo ""
+          
+          consistent_failures=0
+          for test in "${!test_failures[@]}"; do
+              failures=${test_failures[$test]}
+              total=${test_results[$test]:-0}
+              
+              # A test consistently fails if it fails every time
+              if [ $failures -eq $total ] && [ $total -gt 0 ]; then
+                  echo "❌ **$test**"
+                  echo "   - Failed: $failures/$total runs (100%)"
+                  echo ""
+                  consistent_failures=1
+              fi
+          done
+          
+          if [ $consistent_failures -eq 0 ]; then
+              echo "✅ No consistently failing tests"
+          fi
+          
+          echo ""
+          echo "## Summary"
+          echo ""
+          echo "- Total test runs: 5"
+          echo "- Tests analyzed: ${#test_results[@]}"
+          echo "- Tests with failures: ${#test_failures[@]}"
+          echo ""
+          echo "### Recommendations"
+          echo ""
+          echo "1. Investigate flaky tests for race conditions or timing issues"
+          echo "2. Add retries or increase timeouts for flaky tests"
+          echo "3. Fix consistently failing tests immediately"
+          echo "4. Consider quarantining flaky tests until fixed"
+          
+          EOF
+          
+          chmod +x analyze_flakiness.sh
+          ./analyze_flakiness.sh > flakiness-report.md
+          cat flakiness-report.md
+          
+      - name: Upload flakiness report
+        uses: actions/upload-artifact@v3
+        with:
+          name: flakiness-report
+          path: flakiness-report.md
+
+      - name: Comment on PR with flakiness results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('flakiness-report.md', 'utf8');
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## Test Flakiness Report\n\n${report}`
+            });
+
+  test-coverage-trend:
+    name: Track Coverage Trends
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Run tests with coverage
+        run: |
+          go test -v -coverprofile=coverage.out -covermode=atomic ./...
+          go tool cover -func=coverage.out > coverage-summary.txt
+          
+      - name: Extract coverage percentage
+        run: |
+          total_coverage=$(grep "total:" coverage-summary.txt | awk '{print $3}')
+          echo "Total coverage: $total_coverage"
+          echo "COVERAGE=$total_coverage" >> $GITHUB_ENV
+          
+      - name: Create coverage badge
+        run: |
+          coverage_num=$(echo $COVERAGE | sed 's/%//')
+          
+          if (( $(echo "$coverage_num >= 80" | bc -l) )); then
+            color="brightgreen"
+          elif (( $(echo "$coverage_num >= 60" | bc -l) )); then
+            color="yellow"
+          else
+            color="red"
+          fi
+          
+          echo "Coverage: $COVERAGE (Color: $color)"
+          
+      - name: Upload coverage summary
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-summary
+          path: coverage-summary.txt

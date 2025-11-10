@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"fmt"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -91,6 +92,46 @@ func (m *Model) refreshData() error {
 	// Fetch tasks from beads client with statuses "open" and "in_progress"
 	if err := m.refreshBeadsData(); err != nil {
 		return err
+	}
+
+	// Fetch health issues from health monitor
+	if m.healthMonitor != nil {
+		m.healthIssues = m.healthMonitor.GetHealthIssues()
+		
+		// Get recent recovery actions and add them as messages
+		recoveryActions := m.healthMonitor.GetRecoveryActions()
+		for _, action := range recoveryActions {
+			// Only add actions that occurred since last refresh
+			if action.Timestamp.After(m.lastRefresh) {
+				msgType := mcp.TypeMessage
+				content := fmt.Sprintf("Recovery: %s - %s (reason: %s)", action.AgentName, action.Action, action.Reason)
+				if !action.Success {
+					msgType = mcp.TypeError
+					content += fmt.Sprintf(" - FAILED: %s", action.ErrorMsg)
+				}
+				
+				msg := mcp.Message{
+					Timestamp: action.Timestamp,
+					Type:      msgType,
+					Source:    "health-monitor",
+					Content:   content,
+				}
+				m.messages = append(m.messages, msg)
+			}
+		}
+		
+		// Limit message buffer to last 100 messages
+		if len(m.messages) > 100 {
+			m.messages = m.messages[len(m.messages)-100:]
+		}
+	}
+
+	// Collect aggregated logs from all agents
+	if m.logAggregator != nil {
+		if err := m.logAggregator.CollectLogs(); err != nil {
+			// Don't fail completely on log collection errors
+			m.err = err
+		}
 	}
 
 	// Update last refresh time

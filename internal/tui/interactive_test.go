@@ -80,6 +80,14 @@ func (m *mockMCPClient) GetAgentStatus(agentName string) (mcp.AgentStatus, error
 	}, nil
 }
 
+func (m *mockMCPClient) GetAllAgentStatuses(offlineThreshold time.Duration) ([]mcp.AgentStatus, error) {
+	return []mcp.AgentStatus{}, nil
+}
+
+func (m *mockMCPClient) ReleaseAgentLeases(agentName string) error {
+	return nil
+}
+
 // mockProcessManager is a mock implementation of ProcessManager for testing
 type mockProcessManager struct{}
 

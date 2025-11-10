@@ -1,0 +1,371 @@
+name: Dependency Compatibility
+
+on:
+  # Run on Dependabot PRs
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'go.mod'
+      - 'go.sum'
+      - 'agent/requirements.txt'
+  
+  # Manual trigger
+  workflow_dispatch:
+    inputs:
+      test_level:
+        description: 'Test level (quick, full, extensive)'
+        required: false
+        default: 'full'
+        type: choice
+        options:
+          - quick
+          - full
+          - extensive
+  
+  # Weekly scheduled run
+  schedule:
+    - cron: '0 9 * * 1'  # Every Monday at 9 AM UTC
+
+jobs:
+  detect-changes:
+    name: Detect Dependency Changes
+    runs-on: ubuntu-latest
+    outputs:
+      go-changed: ${{ steps.changes.outputs.go }}
+      python-changed: ${{ steps.changes.outputs.python }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      
+      - name: Check for dependency changes
+        id: changes
+        run: |
+          if git diff HEAD^ HEAD -- go.mod go.sum | grep -q .; then
+            echo "go=true" >> $GITHUB_OUTPUT
+          else
+            echo "go=false" >> $GITHUB_OUTPUT
+          fi
+          
+          if git diff HEAD^ HEAD -- agent/requirements.txt | grep -q .; then
+            echo "python=true" >> $GITHUB_OUTPUT
+          else
+            echo "python=false" >> $GITHUB_OUTPUT
+          fi
+
+  go-compatibility:
+    name: Go Compatibility (Go ${{ matrix.go-version }}, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    needs: detect-changes
+    if: needs.detect-changes.outputs.go-changed == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    strategy:
+      fail-fast: false
+      matrix:
+        go-version: ['1.21', '1.22', '1.23']
+        os: [ubuntu-latest, macos-latest]
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Go ${{ matrix.go-version }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+          cache: true
+      
+      - name: Download dependencies
+        run: go mod download
+      
+      - name: Verify dependencies
+        run: |
+          go mod verify
+          go mod tidy
+          git diff --exit-code go.mod go.sum
+      
+      - name: Run unit tests
+        run: go test -v -race -coverprofile=coverage.txt ./...
+      
+      - name: Run integration tests
+        run: go test -v -race -tags=integration ./test/
+      
+      - name: Check for deprecation warnings
+        run: |
+          go build -v ./... 2>&1 | tee build.log
+          if grep -i "deprecated" build.log; then
+            echo "::warning::Deprecation warnings found"
+            cat build.log
+          fi
+      
+      - name: Upload coverage
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./coverage.txt
+          flags: go-${{ matrix.go-version }}-${{ matrix.os }}
+          name: go-${{ matrix.go-version }}-${{ matrix.os }}
+
+  python-compatibility:
+    name: Python Compatibility (Python ${{ matrix.python-version }}, ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    needs: detect-changes
+    if: needs.detect-changes.outputs.python-changed == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.10', '3.11', '3.12']
+        os: [ubuntu-latest, macos-latest]
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+          cache-dependency-path: agent/requirements.txt
+      
+      - name: Install dependencies
+        run: |
+          cd agent
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov
+      
+      - name: Check for dependency conflicts
+        run: |
+          cd agent
+          pip check
+      
+      - name: Run Python tests
+        run: |
+          cd agent
+          pytest tests/ -v --cov=. --cov-report=xml
+      
+      - name: Check for deprecation warnings
+        run: |
+          cd agent
+          python -W default::DeprecationWarning -m pytest tests/ 2>&1 | tee test.log
+          if grep -i "DeprecationWarning" test.log; then
+            echo "::warning::Deprecation warnings found in Python tests"
+          fi
+      
+      - name: Upload coverage
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./agent/coverage.xml
+          flags: python-${{ matrix.python-version }}-${{ matrix.os }}
+          name: python-${{ matrix.python-version }}-${{ matrix.os }}
+
+  e2e-compatibility:
+    name: E2E Compatibility Tests
+    runs-on: ubuntu-latest
+    needs: [go-compatibility, python-compatibility]
+    if: always() && (needs.go-compatibility.result == 'success' || needs.python-compatibility.result == 'success')
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache: true
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: agent/requirements.txt
+      
+      - name: Install dependencies
+        run: |
+          go mod download
+          cd agent && pip install -r requirements.txt
+      
+      - name: Build asc
+        run: go build -o asc main.go
+      
+      - name: Run E2E tests
+        run: go test -v -tags=e2e ./test/e2e_comprehensive_test.go
+        timeout-minutes: 10
+      
+      - name: Check for runtime errors
+        run: |
+          ./asc check || echo "::warning::asc check failed"
+
+  performance-regression:
+    name: Performance Regression Tests
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.go-changed == 'true' || github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache: true
+      
+      - name: Run benchmarks (current)
+        run: |
+          go test -bench=. -benchmem -run=^$ ./... | tee bench-new.txt
+      
+      - name: Checkout previous version
+        run: |
+          git checkout HEAD^
+          go mod download
+      
+      - name: Run benchmarks (previous)
+        run: |
+          go test -bench=. -benchmem -run=^$ ./... | tee bench-old.txt
+      
+      - name: Compare benchmarks
+        run: |
+          echo "## Benchmark Comparison" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Previous Version" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat bench-old.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Current Version" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat bench-new.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          
+          # Check for significant regressions (>20% slower)
+          if command -v benchstat &> /dev/null; then
+            benchstat bench-old.txt bench-new.txt | tee benchstat.txt
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Statistical Analysis" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat benchstat.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
+
+  security-scan:
+    name: Security Vulnerability Scan
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache: true
+      
+      - name: Run govulncheck
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Run pip-audit
+        run: |
+          pip install pip-audit
+          cd agent
+          pip-audit -r requirements.txt --desc || echo "::warning::Vulnerabilities found in Python dependencies"
+      
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+      
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: moderate
+          deny-licenses: GPL-3.0, AGPL-3.0
+          comment-summary-in-pr: always
+
+  compatibility-report:
+    name: Generate Compatibility Report
+    runs-on: ubuntu-latest
+    needs: [go-compatibility, python-compatibility, e2e-compatibility, performance-regression, security-scan]
+    if: always()
+    
+    steps:
+      - name: Generate report
+        run: |
+          echo "# Dependency Compatibility Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Date**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> $GITHUB_STEP_SUMMARY
+          echo "**Trigger**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          echo "## Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Test Suite | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Go Compatibility | ${{ needs.go-compatibility.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Python Compatibility | ${{ needs.python-compatibility.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| E2E Tests | ${{ needs.e2e-compatibility.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Performance | ${{ needs.performance-regression.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security Scan | ${{ needs.security-scan.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Overall status
+          if [[ "${{ needs.go-compatibility.result }}" == "success" ]] && \
+             [[ "${{ needs.python-compatibility.result }}" == "success" ]] && \
+             [[ "${{ needs.e2e-compatibility.result }}" == "success" ]] && \
+             [[ "${{ needs.security-scan.result }}" == "success" ]]; then
+            echo "## ✅ All compatibility tests passed!" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Dependencies are compatible and safe to merge." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## ⚠️ Some compatibility tests failed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Please review the failed tests before merging." >> $GITHUB_STEP_SUMMARY
+          fi
+      
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const report = `## 🔍 Dependency Compatibility Report
+            
+            **Go Compatibility**: ${{ needs.go-compatibility.result }}
+            **Python Compatibility**: ${{ needs.python-compatibility.result }}
+            **E2E Tests**: ${{ needs.e2e-compatibility.result }}
+            **Performance**: ${{ needs.performance-regression.result }}
+            **Security**: ${{ needs.security-scan.result }}
+            
+            See [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.
+            `;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: report
+            });

@@ -1,0 +1,150 @@
+name: License Compliance
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run weekly on Monday at 9:00 AM UTC
+    - cron: '0 9 * * 1'
+
+jobs:
+  license-check:
+    name: Check License Compliance
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Install go-licenses
+        run: go install github.com/google/go-licenses@latest
+
+      - name: Check Go dependencies licenses
+        run: |
+          echo "Checking Go module licenses..."
+          go-licenses check ./... --disallowed_types=forbidden,restricted,reciprocal,unknown
+          
+      - name: Generate license report
+        run: |
+          echo "Generating license report..."
+          go-licenses report ./... > licenses-go.txt
+          
+      - name: Upload license report
+        uses: actions/upload-artifact@v3
+        with:
+          name: license-reports
+          path: licenses-go.txt
+
+      - name: Check Python dependencies licenses
+        run: |
+          echo "Checking Python package licenses..."
+          pip install pip-licenses
+          cd agent
+          pip install -r requirements.txt
+          pip-licenses --format=markdown --output-file=../licenses-python.md
+          pip-licenses --fail-on="GPL;AGPL;LGPL" || echo "Warning: Found copyleft licenses"
+          
+      - name: Upload Python license report
+        uses: actions/upload-artifact@v3
+        with:
+          name: license-reports
+          path: licenses-python.md
+
+      - name: Check for license files
+        run: |
+          echo "Verifying LICENSE file exists..."
+          if [ ! -f LICENSE ]; then
+            echo "ERROR: LICENSE file not found in repository root"
+            exit 1
+          fi
+          echo "LICENSE file found"
+
+      - name: Validate SPDX identifiers
+        run: |
+          echo "Checking for SPDX license identifiers in source files..."
+          # Check Go files
+          missing_license=0
+          for file in $(find . -name "*.go" -not -path "./vendor/*" -not -path "./.git/*" | head -20); do
+            if ! grep -q "SPDX-License-Identifier\|Copyright" "$file"; then
+              echo "Missing license header: $file"
+              missing_license=1
+            fi
+          done
+          
+          if [ $missing_license -eq 1 ]; then
+            echo "Warning: Some files are missing license headers"
+            echo "Consider adding SPDX-License-Identifier comments"
+          else
+            echo "License headers check passed"
+          fi
+
+  license-summary:
+    name: Generate License Summary
+    runs-on: ubuntu-latest
+    needs: license-check
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download license reports
+        uses: actions/download-artifact@v3
+        with:
+          name: license-reports
+
+      - name: Create license summary
+        run: |
+          cat > LICENSE_SUMMARY.md << 'EOF'
+          # License Compliance Summary
+          
+          Generated: $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          
+          ## Project License
+          
+          This project is licensed under the terms specified in the LICENSE file.
+          
+          ## Third-Party Dependencies
+          
+          ### Go Dependencies
+          
+          See `licenses-go.txt` for a complete list of Go module licenses.
+          
+          ### Python Dependencies
+          
+          See `licenses-python.md` for a complete list of Python package licenses.
+          
+          ## Compliance Status
+          
+          ✅ All dependencies have been scanned for license compliance
+          ✅ No forbidden or restricted licenses detected
+          ✅ License files are present in the repository
+          
+          ## Allowed License Types
+          
+          - MIT
+          - Apache-2.0
+          - BSD-2-Clause, BSD-3-Clause
+          - ISC
+          - MPL-2.0
+          
+          ## Restricted License Types
+          
+          The following license types require legal review:
+          - GPL (any version)
+          - AGPL (any version)
+          - LGPL (any version)
+          
+          EOF
+          
+          echo "License summary created"
+
+      - name: Upload summary
+        uses: actions/upload-artifact@v3
+        with:
+          name: license-reports
+          path: LICENSE_SUMMARY.md

@@ -12,10 +12,15 @@ import (
 	"github.com/yourusername/asc/internal/beads"
 	"github.com/yourusername/asc/internal/check"
 	"github.com/yourusername/asc/internal/config"
+	"github.com/yourusername/asc/internal/logger"
 	"github.com/yourusername/asc/internal/mcp"
 	"github.com/yourusername/asc/internal/process"
 	"github.com/yourusername/asc/internal/secrets"
 	"github.com/yourusername/asc/internal/tui"
+)
+
+var (
+	debugMode bool
 )
 
 var upCmd = &cobra.Command{
@@ -31,53 +36,98 @@ var upCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(upCmd)
+	upCmd.Flags().BoolVar(&debugMode, "debug", false, "Enable debug mode with verbose output")
 }
 
 func runUp(cmd *cobra.Command, args []string) {
+	// Initialize logger
+	if err := logger.Init(); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to initialize logger: %v\n", err)
+		os.Exit(1)
+	}
+	defer logger.Close()
+
+	// Enable debug mode if flag is set
+	if debugMode {
+		logger.SetLevel(logger.DEBUG)
+		logger.SetFormat(logger.FormatJSON)
+		logger.Info("Debug mode enabled")
+	}
+
 	// Default paths
 	configPath := "asc.toml"
 	envPath := ".env"
+
+	logger.Debug("Starting asc up command with config=%s, env=%s", configPath, envPath)
 
 	// Step 0: Auto-decrypt secrets if needed
 	if _, err := os.Stat(envPath); os.IsNotExist(err) {
 		// Check if encrypted version exists
 		if _, err := os.Stat(envPath + ".age"); err == nil {
 			fmt.Println("🔐 Decrypting secrets...")
+			logger.Debug("Decrypting secrets from %s.age", envPath)
 			secretsManager := secrets.NewManager()
 			if err := secretsManager.DecryptEnv(envPath); err != nil {
+				logger.Error("Failed to decrypt secrets: %v", err)
 				fmt.Fprintf(os.Stderr, "Failed to decrypt secrets: %v\n", err)
 				fmt.Fprintln(os.Stderr, "Run 'asc secrets decrypt' manually or 'asc init' to set up encryption.")
 				os.Exit(1)
 			}
 			fmt.Println("✓ Secrets decrypted")
+			logger.Debug("Secrets decrypted successfully")
 		}
 	}
 
 	// Step 1: Run silent dependency check
+	logger.Debug("Running dependency checks")
 	checker := check.NewChecker(configPath, envPath)
 	results := checker.RunAll()
 
+	if debugMode {
+		for _, result := range results {
+			logger.WithFields(logger.Fields{
+				"check":  result.Name,
+				"status": result.Status,
+			}).Debug("Dependency check result: %s", result.Message)
+		}
+	}
+
 	if check.HasFailures(results) {
+		logger.Error("Dependency check failed")
 		fmt.Fprintln(os.Stderr, "Dependency check failed. Run 'asc check' for details.")
 		os.Exit(1)
 	}
+	logger.Debug("All dependency checks passed")
 
 	// Step 2: Load configuration from asc.toml
+	logger.Debug("Loading configuration from %s", configPath)
 	cfg, err := config.Load(configPath)
 	if err != nil {
+		logger.Error("Failed to load configuration: %v", err)
 		fmt.Fprintf(os.Stderr, "Failed to load configuration: %v\n", err)
 		os.Exit(1)
 	}
+	if debugMode {
+		logger.WithFields(logger.Fields{
+			"agents":   len(cfg.Agents),
+			"mcp_url":  cfg.Services.MCPAgentMail.URL,
+			"beads_db": cfg.Core.BeadsDBPath,
+		}).Debug("Configuration loaded successfully")
+	}
 
 	// Step 3: Load environment variables from .env
+	logger.Debug("Loading environment variables from %s", envPath)
 	if err := config.LoadAndValidateEnv(envPath); err != nil {
+		logger.Error("Failed to load environment: %v", err)
 		fmt.Fprintf(os.Stderr, "Failed to load environment: %v\n", err)
 		os.Exit(1)
 	}
+	logger.Debug("Environment variables loaded successfully")
 
 	// Step 4: Initialize process manager with ~/.asc/pids and ~/.asc/logs
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
+		logger.Error("Failed to get home directory: %v", err)
 		fmt.Fprintf(os.Stderr, "Failed to get home directory: %v\n", err)
 		os.Exit(1)
 	}
@@ -85,8 +135,10 @@ func runUp(cmd *cobra.Command, args []string) {
 	pidsDir := filepath.Join(homeDir, ".asc", "pids")
 	logsDir := filepath.Join(homeDir, ".asc", "logs")
 
+	logger.Debug("Initializing process manager with pids=%s, logs=%s", pidsDir, logsDir)
 	procManager, err := process.NewManager(pidsDir, logsDir)
 	if err != nil {
+		logger.Error("Failed to initialize process manager: %v", err)
 		fmt.Fprintf(os.Stderr, "Failed to initialize process manager: %v\n", err)
 		os.Exit(1)
 	}
@@ -95,14 +147,22 @@ func runUp(cmd *cobra.Command, args []string) {
 	fmt.Println("Starting mcp_agent_mail service...")
 	mcpEnv := buildMCPEnv()
 	mcpCmd, mcpArgs := parseCommand(cfg.Services.MCPAgentMail.StartCommand)
+	logger.WithFields(logger.Fields{
+		"command": mcpCmd,
+		"args":    mcpArgs,
+	}).Debug("Starting mcp_agent_mail service")
 	_, err = procManager.Start("mcp_agent_mail", mcpCmd, mcpArgs, mcpEnv)
 	if err != nil {
+		logger.Error("Failed to start mcp_agent_mail: %v", err)
 		fmt.Fprintf(os.Stderr, "Failed to start mcp_agent_mail: %v\n", err)
 		os.Exit(1)
 	}
+	logger.Info("mcp_agent_mail service started successfully")
 
 	// Step 6: Launch agent processes (handled in subtask 16.2)
+	logger.Debug("Launching agent processes")
 	if err := launchAgents(cfg, procManager); err != nil {
+		logger.Error("Failed to launch agents: %v", err)
 		fmt.Fprintf(os.Stderr, "Failed to launch agents: %v\n", err)
 		// Clean up: stop mcp_agent_mail
 		_ = procManager.StopAll()
@@ -110,7 +170,9 @@ func runUp(cmd *cobra.Command, args []string) {
 	}
 
 	// Step 7: Initialize and run TUI (handled in subtask 16.3)
-	if err := runTUI(cfg, procManager); err != nil {
+	logger.Debug("Initializing TUI dashboard")
+	if err := runTUI(cfg, procManager, debugMode); err != nil {
+		logger.Error("TUI error: %v", err)
 		fmt.Fprintf(os.Stderr, "TUI error: %v\n", err)
 		// Clean up: stop all processes
 		_ = procManager.StopAll()
@@ -119,10 +181,13 @@ func runUp(cmd *cobra.Command, args []string) {
 
 	// Clean up on exit
 	fmt.Println("\nShutting down agent stack...")
+	logger.Info("Shutting down agent stack")
 	if err := procManager.StopAll(); err != nil {
+		logger.Error("Error during shutdown: %v", err)
 		fmt.Fprintf(os.Stderr, "Error during shutdown: %v\n", err)
 	}
 	fmt.Println("Agent stack is offline")
+	logger.Info("Agent stack is offline")
 }
 
 // parseCommand parses a command string into command and args
@@ -168,27 +233,54 @@ func buildMCPEnv() []string {
 // launchAgents starts all configured agent processes
 func launchAgents(cfg *config.Config, procManager process.ProcessManager) error {
 	fmt.Printf("Launching %d agent(s)...\n", len(cfg.Agents))
+	logger.Info("Launching %d agent(s)", len(cfg.Agents))
 
 	// Iterate through agents in config
 	for agentName, agentCfg := range cfg.Agents {
 		fmt.Printf("  Starting agent: %s (model: %s)...\n", agentName, agentCfg.Model)
+		logger.WithFields(logger.Fields{
+			"agent": agentName,
+			"model": agentCfg.Model,
+			"phases": agentCfg.Phases,
+		}).Info("Starting agent")
 
 		// Build environment variables for this agent
 		agentEnv := buildAgentEnv(agentName, agentCfg, cfg)
 
+		if debugMode {
+			logger.WithFields(logger.Fields{
+				"agent": agentName,
+				"env_count": len(agentEnv),
+			}).Debug("Built agent environment variables")
+		}
+
 		// Parse command into command and args
 		cmd, args := parseCommand(agentCfg.Command)
 
+		logger.WithFields(logger.Fields{
+			"agent": agentName,
+			"command": cmd,
+			"args": args,
+		}).Debug("Parsed agent command")
+
 		// Start the agent using process manager
-		_, err := procManager.Start(agentName, cmd, args, agentEnv)
+		pid, err := procManager.Start(agentName, cmd, args, agentEnv)
 		if err != nil {
+			logger.WithFields(logger.Fields{
+				"agent": agentName,
+			}).Error("Failed to start agent: %v", err)
 			return fmt.Errorf("failed to start agent '%s': %w", agentName, err)
 		}
 
 		fmt.Printf("  ✓ Agent %s started\n", agentName)
+		logger.WithFields(logger.Fields{
+			"agent": agentName,
+			"pid": pid,
+		}).Info("Agent started successfully")
 	}
 
 	fmt.Println("All agents started successfully")
+	logger.Info("All agents started successfully")
 	return nil
 }
 
@@ -219,19 +311,23 @@ func buildAgentEnv(agentName string, agentCfg config.AgentConfig, cfg *config.Co
 }
 
 // runTUI initializes and runs the TUI dashboard
-func runTUI(cfg *config.Config, procManager process.ProcessManager) error {
+func runTUI(cfg *config.Config, procManager process.ProcessManager, debug bool) error {
 	// Clear terminal screen
 	fmt.Print("\033[H\033[2J")
 
+	logger.Debug("Initializing beads client with path=%s", cfg.Core.BeadsDBPath)
 	// Initialize beads client with 5 second refresh interval
 	beadsClient := beads.NewClient(cfg.Core.BeadsDBPath, 5*time.Second)
 
+	logger.Debug("Initializing MCP client with url=%s", cfg.Services.MCPAgentMail.URL)
 	// Initialize MCP client
 	mcpClient := mcp.NewHTTPClient(cfg.Services.MCPAgentMail.URL)
 
 	// Create bubbletea Model with config and clients
 	model := tui.NewModel(*cfg, beadsClient, mcpClient, procManager)
+	model.SetDebugMode(debug)
 
+	logger.Info("Starting TUI dashboard")
 	// Start TUI event loop with tea.NewProgram
 	program := tea.NewProgram(
 		model,
@@ -242,6 +338,7 @@ func runTUI(cfg *config.Config, procManager process.ProcessManager) error {
 	// Run the program and handle exit
 	finalModel, err := program.Run()
 	if err != nil {
+		logger.Error("TUI error: %v", err)
 		return fmt.Errorf("TUI error: %w", err)
 	}
 
@@ -251,9 +348,11 @@ func runTUI(cfg *config.Config, procManager process.ProcessManager) error {
 		m.Cleanup()
 		
 		if m.GetError() != nil {
+			logger.Error("TUI exited with error: %v", m.GetError())
 			return fmt.Errorf("TUI exited with error: %w", m.GetError())
 		}
 	}
 
+	logger.Info("TUI exited normally")
 	return nil
 }

@@ -9,6 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/yourusername/asc/internal/beads"
+	"github.com/yourusername/asc/internal/logger"
 	"github.com/yourusername/asc/internal/mcp"
 )
 
@@ -52,6 +53,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		
 	case logActionMsg:
 		return m.handleLogAction(msg)
+		
+	case configReloadMsg:
+		return m.handleConfigReload(msg)
 	}
 
 	return m, nil
@@ -659,11 +663,36 @@ func viewAgentLogsCmd(m Model) tea.Cmd {
 // exportLogsCmd exports filtered logs to a file
 func exportLogsCmd(m Model) tea.Cmd {
 	return func() tea.Msg {
-		// Filter messages
-		messages := m.getFilteredMessages()
-		
 		// Create export file
 		filename := fmt.Sprintf("asc-logs-%s.txt", time.Now().Format("20060102-150405"))
+		
+		// Use log aggregator if available for comprehensive export
+		if m.logAggregator != nil {
+			// Build filters from current UI state
+			filters := logger.LogFilters{
+				AgentName:  m.logFilterAgent,
+				SearchText: m.searchInput,
+			}
+			
+			// Export aggregated logs
+			if err := m.logAggregator.ExportToFile(filename, filters); err != nil {
+				return logActionMsg{
+					success: false,
+					message: fmt.Sprintf("Failed to export logs: %v", err),
+				}
+			}
+			
+			// Get stats for the message
+			stats := m.logAggregator.GetStats()
+			return logActionMsg{
+				success: true,
+				message: fmt.Sprintf("Exported %d log entries to %s", stats.TotalEntries, filename),
+			}
+		}
+		
+		// Fallback: export MCP messages only
+		messages := m.getFilteredMessages()
+		
 		file, err := os.Create(filename)
 		if err != nil {
 			return logActionMsg{
@@ -808,3 +837,63 @@ func (m Model) cycleMessageTypeFilter() Model {
 	
 	return m
 }
+
+// handleConfigReload processes configuration reload events
+func (m Model) handleConfigReload(msg configReloadMsg) (tea.Model, tea.Cmd) {
+	if m.reloadManager == nil || msg.newConfig == nil {
+		return m, nil
+	}
+
+	// Perform the reload
+	result, err := m.reloadManager.Reload(msg.newConfig)
+	if err != nil {
+		m.err = fmt.Errorf("config reload failed: %w", err)
+		m.reloadNotification = fmt.Sprintf("❌ Config reload failed: %v", err)
+		m.reloadNotificationTime = time.Now()
+		return m, waitForConfigReloadCmd(m.configWatcher)
+	}
+
+	// Update the model's config
+	m.config = *msg.newConfig
+
+	// Build notification message
+	var notificationParts []string
+	
+	if len(result.AgentsAdded) > 0 {
+		notificationParts = append(notificationParts, 
+			fmt.Sprintf("Added: %s", strings.Join(result.AgentsAdded, ", ")))
+	}
+	
+	if len(result.AgentsRemoved) > 0 {
+		notificationParts = append(notificationParts, 
+			fmt.Sprintf("Removed: %s", strings.Join(result.AgentsRemoved, ", ")))
+	}
+	
+	if len(result.AgentsUpdated) > 0 {
+		notificationParts = append(notificationParts, 
+			fmt.Sprintf("Updated: %s", strings.Join(result.AgentsUpdated, ", ")))
+	}
+
+	if len(notificationParts) == 0 {
+		m.reloadNotification = "✓ Config reloaded (no changes)"
+	} else {
+		m.reloadNotification = fmt.Sprintf("✓ Config reloaded: %s", 
+			strings.Join(notificationParts, " | "))
+	}
+	
+	// Add errors to notification if any
+	if len(result.Errors) > 0 {
+		errorMsgs := make([]string, len(result.Errors))
+		for i, err := range result.Errors {
+			errorMsgs[i] = err.Error()
+		}
+		m.reloadNotification += fmt.Sprintf(" (Errors: %s)", strings.Join(errorMsgs, "; "))
+	}
+	
+	m.reloadNotificationTime = time.Now()
+
+	// Continue listening for next reload event
+	return m, waitForConfigReloadCmd(m.configWatcher)
+}
+
+

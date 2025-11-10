@@ -31,6 +31,7 @@ A command-line orchestration tool for managing a local colony of AI coding agent
 
 - **Single-command orchestration**: Start, stop, and monitor multiple AI agents with simple CLI commands
 - **Real-time TUI dashboard**: Beautiful terminal interface showing agent status, task streams, and communication logs
+- **Hot-reload configuration**: Add, remove, or update agents without restarting the stack
 - **Flexible agent matrix**: Mix and match any LLM (Claude, Gemini, OpenAI) with any role (planner, coder, tester)
 - **Git-backed task management**: Integration with beads for persistent, version-controlled task state
 - **Asynchronous coordination**: Agents communicate through mcp_agent_mail for file leasing and task coordination
@@ -198,6 +199,34 @@ Dependency Check Results:
 ✓ .env         API keys present
 ```
 
+### Diagnostics and Troubleshooting
+
+Run comprehensive diagnostics to detect and fix common issues:
+
+```bash
+# Run diagnostics
+asc doctor
+
+# Get detailed information
+asc doctor --verbose
+
+# Automatically fix issues
+asc doctor --fix
+
+# Output as JSON
+asc doctor --json
+```
+
+The doctor command checks for:
+- Configuration problems
+- Corrupted state (PIDs, logs)
+- Permission issues
+- Resource problems
+- Network connectivity
+- Agent health issues
+
+Many common issues can be automatically fixed with the `--fix` flag. See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for more details.
+
 ### End-to-End Test
 
 Test the full stack communication:
@@ -224,6 +253,25 @@ asc services stop
 ```
 
 ## Configuration
+
+### Configuration Templates
+
+asc provides pre-built templates for common agent setups. See [Templates Documentation](docs/TEMPLATES.md) for detailed information.
+
+**Quick start with templates:**
+
+```bash
+# List available templates
+asc init --list-templates
+
+# Initialize with a template
+asc init --template=solo    # Single agent
+asc init --template=team    # Planner, coder, tester (default)
+asc init --template=swarm   # Multiple agents per phase
+
+# Save your config as a custom template
+asc init --save-template my-setup
+```
 
 ### Configuration File (asc.toml)
 
@@ -548,7 +596,22 @@ make test-coverage
 # Or use go directly
 go test ./...
 go test -v -race -coverprofile=coverage.out ./...
+
+# Run end-to-end tests (requires build)
+make build
+go test -tags=e2e ./test -v
+
+# Run comprehensive e2e tests (requires all dependencies)
+E2E_FULL=true go test -tags=e2e ./test -v
+
+# Run long-running stability tests
+E2E_LONG=true go test -tags=e2e ./test -v -run TestE2ELongRunning -timeout 25h
+
+# Run stress tests
+E2E_STRESS=true go test -tags=e2e ./test -v -run TestE2EStress
 ```
+
+See [test/E2E_TESTING.md](test/E2E_TESTING.md) for comprehensive e2e testing documentation.
 
 ### Development Workflow
 
@@ -655,6 +718,9 @@ Comprehensive documentation is available in the `docs/` directory:
 - **[Security](docs/security/)** - Security features and best practices
 - **[Testing](docs/testing/)** - Test reports and coverage
 - **[Agent Adapter](agent/README.md)** - Python agent framework documentation
+- **[Dependencies](docs/DEPENDENCIES.md)** - Dependency management and update policies
+- **[Breaking Changes](docs/BREAKING_CHANGES.md)** - Dependency breaking changes log
+- **[Known Issues](docs/KNOWN_ISSUES.md)** - Known dependency issues and workarounds
 
 ### Quick Links
 
@@ -665,14 +731,23 @@ Comprehensive documentation is available in the `docs/` directory:
 
 ## Contributing
 
-Contributions are welcome! Please:
+Contributions are welcome! We have comprehensive guides to help you get started:
+
+- **[Contributing Guide](CONTRIBUTING.md)** - Complete guide to contributing
+- **[Code Review Checklist](CODE_REVIEW_CHECKLIST.md)** - What reviewers look for
+- **[Testing Best Practices](TESTING.md)** - How to write good tests
+- **[Debugging Guide](DEBUGGING.md)** - Tools and techniques for debugging
+- **[Troubleshooting](TROUBLESHOOTING.md)** - Solutions to common issues
+
+Quick start:
 
 1. Fork the repository
-2. Create a feature branch
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Make your changes
 4. Add tests for new functionality
-5. Update documentation as needed
-6. Submit a pull request
+5. Run checks (`make check`)
+6. Update documentation as needed
+7. Submit a pull request
 
 See [Documentation Guidelines](docs/README.md#documentation-guidelines) for documentation standards.
 

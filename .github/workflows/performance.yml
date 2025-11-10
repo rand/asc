@@ -1,0 +1,202 @@
+name: Performance Testing
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run nightly at 2:00 AM UTC
+    - cron: '0 2 * * *'
+
+jobs:
+  benchmark:
+    name: Run Benchmarks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for comparison
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Cache Go modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-bench-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-bench-
+
+      - name: Run benchmarks
+        run: |
+          echo "Running benchmarks..."
+          go test -bench=. -benchmem -benchtime=5s -run=^$ ./... | tee benchmark-results.txt
+          
+      - name: Store benchmark result
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          tool: 'go'
+          output-file-path: benchmark-results.txt
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          auto-push: true
+          # Show alert with commit comment on detecting possible performance regression
+          alert-threshold: '150%'
+          comment-on-alert: true
+          fail-on-alert: false
+          alert-comment-cc-users: '@yourusername'
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@v3
+        with:
+          name: benchmark-results
+          path: benchmark-results.txt
+
+  memory-profile:
+    name: Memory Profiling
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Run memory profiling
+        run: |
+          echo "Running memory profiling tests..."
+          go test -memprofile=mem.prof -memprofilerate=1 ./internal/tui/...
+          go tool pprof -text mem.prof > memory-profile.txt
+          
+      - name: Upload memory profile
+        uses: actions/upload-artifact@v3
+        with:
+          name: memory-profile
+          path: |
+            mem.prof
+            memory-profile.txt
+
+  cpu-profile:
+    name: CPU Profiling
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Run CPU profiling
+        run: |
+          echo "Running CPU profiling tests..."
+          go test -cpuprofile=cpu.prof ./internal/tui/...
+          go tool pprof -text cpu.prof > cpu-profile.txt
+          
+      - name: Upload CPU profile
+        uses: actions/upload-artifact@v3
+        with:
+          name: cpu-profile
+          path: |
+            cpu.prof
+            cpu-profile.txt
+
+  load-test:
+    name: Load Testing
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Build binary
+        run: make build
+
+      - name: Run load tests
+        run: |
+          echo "Running load tests..."
+          # Test with large datasets
+          go test -v -timeout 30m ./test -run TestE2EStress || true
+          
+      - name: Check memory usage
+        run: |
+          echo "Checking memory usage under load..."
+          # Run a simple memory check
+          /usr/bin/time -v ./build/asc check 2>&1 | tee memory-usage.txt || true
+          
+      - name: Upload load test results
+        uses: actions/upload-artifact@v3
+        with:
+          name: load-test-results
+          path: memory-usage.txt
+
+  performance-report:
+    name: Generate Performance Report
+    runs-on: ubuntu-latest
+    needs: [benchmark, memory-profile, cpu-profile, load-test]
+    if: always()
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+
+      - name: Generate performance report
+        run: |
+          cat > PERFORMANCE_REPORT.md << 'EOF'
+          # Performance Test Report
+          
+          Generated: $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          Commit: ${{ github.sha }}
+          Branch: ${{ github.ref_name }}
+          
+          ## Benchmark Results
+          
+          See `benchmark-results.txt` for detailed benchmark data.
+          
+          ## Memory Profile
+          
+          See `memory-profile.txt` for memory allocation analysis.
+          
+          ## CPU Profile
+          
+          See `cpu-profile.txt` for CPU usage analysis.
+          
+          ## Load Test Results
+          
+          See `memory-usage.txt` for load testing results.
+          
+          ## Performance Metrics
+          
+          - **Benchmark Status**: Check benchmark-results for regression alerts
+          - **Memory Usage**: Review memory-profile for allocation hotspots
+          - **CPU Usage**: Review cpu-profile for performance bottlenecks
+          - **Load Capacity**: Review load-test-results for stress test outcomes
+          
+          ## Recommendations
+          
+          1. Monitor benchmark trends over time
+          2. Investigate any performance regressions > 50%
+          3. Optimize hot paths identified in profiling
+          4. Ensure memory usage stays within acceptable bounds
+          
+          EOF
+          
+          echo "Performance report generated"
+
+      - name: Upload performance report
+        uses: actions/upload-artifact@v3
+        with:
+          name: performance-report
+          path: PERFORMANCE_REPORT.md

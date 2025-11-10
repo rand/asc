@@ -1,6 +1,8 @@
 package tui
 
 import (
+	"time"
+
 	"github.com/charmbracelet/lipgloss"
 )
 
@@ -103,6 +105,10 @@ func (m Model) renderFooter(width int) string {
 		Foreground(lipgloss.Color("12")).
 		Bold(true)
 	
+	notificationStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("10")).
+		Bold(true)
+	
 	// Build keybindings section
 	keybindings := lipgloss.JoinHorizontal(
 		lipgloss.Left,
@@ -113,6 +119,19 @@ func (m Model) renderFooter(width int) string {
 		keyStyle.Render("(t)"),
 		" test",
 	)
+	
+	// Add debug indicator if debug mode is enabled
+	if m.debugMode {
+		debugStyle := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("11")).
+			Bold(true)
+		keybindings = lipgloss.JoinHorizontal(
+			lipgloss.Left,
+			keybindings,
+			" | ",
+			debugStyle.Render("[DEBUG]"),
+		)
+	}
 	
 	// Check connection status for beads and MCP
 	beadsStatus := m.getBeadsConnectionStatus()
@@ -127,24 +146,48 @@ func (m Model) renderFooter(width int) string {
 		mcpStatus,
 	)
 	
-	// Calculate spacing to push connection status to the right
-	keybindingsWidth := lipgloss.Width(keybindings)
-	connectionWidth := lipgloss.Width(connectionStatus)
-	spacerWidth := width - keybindingsWidth - connectionWidth - 4 // 4 for padding
-	
-	if spacerWidth < 1 {
-		spacerWidth = 1
+	// Check if we should show reload notification (show for 5 seconds)
+	var footerContent string
+	if m.reloadNotification != "" && time.Since(m.reloadNotificationTime) < 5*time.Second {
+		// Show reload notification
+		notification := notificationStyle.Render(m.reloadNotification)
+		
+		// Calculate spacing
+		notificationWidth := lipgloss.Width(notification)
+		connectionWidth := lipgloss.Width(connectionStatus)
+		spacerWidth := width - notificationWidth - connectionWidth - 4
+		
+		if spacerWidth < 1 {
+			spacerWidth = 1
+		}
+		
+		spacer := lipgloss.NewStyle().Width(spacerWidth).Render("")
+		
+		footerContent = lipgloss.JoinHorizontal(
+			lipgloss.Left,
+			notification,
+			spacer,
+			connectionStatus,
+		)
+	} else {
+		// Show normal keybindings
+		keybindingsWidth := lipgloss.Width(keybindings)
+		connectionWidth := lipgloss.Width(connectionStatus)
+		spacerWidth := width - keybindingsWidth - connectionWidth - 4 // 4 for padding
+		
+		if spacerWidth < 1 {
+			spacerWidth = 1
+		}
+		
+		spacer := lipgloss.NewStyle().Width(spacerWidth).Render("")
+		
+		footerContent = lipgloss.JoinHorizontal(
+			lipgloss.Left,
+			keybindings,
+			spacer,
+			connectionStatus,
+		)
 	}
-	
-	spacer := lipgloss.NewStyle().Width(spacerWidth).Render("")
-	
-	// Compose footer content
-	footerContent := lipgloss.JoinHorizontal(
-		lipgloss.Left,
-		keybindings,
-		spacer,
-		connectionStatus,
-	)
 	
 	return footerStyle.Width(width - 2).Render(footerContent)
 }

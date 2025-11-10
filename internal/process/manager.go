@@ -51,6 +51,13 @@ type ProcessInfo struct {
 	LogFile   string            `json:"log_file"`
 }
 
+// Getter methods for ProcessInfo to satisfy config.ProcessInfoGetter interface
+func (p *ProcessInfo) GetPID() int                     { return p.PID }
+func (p *ProcessInfo) GetName() string                { return p.Name }
+func (p *ProcessInfo) GetCommand() string             { return p.Command }
+func (p *ProcessInfo) GetArgs() []string              { return p.Args }
+func (p *ProcessInfo) GetEnv() map[string]string      { return p.Env }
+
 // ProcessManager defines the interface for managing background processes
 type ProcessManager interface {
 	// Start launches a new process with the given name, command, and environment

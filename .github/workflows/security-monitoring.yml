@@ -1,0 +1,336 @@
+name: Security Monitoring
+
+on:
+  # Run daily to check for new vulnerabilities
+  schedule:
+    - cron: '0 6 * * *'  # Every day at 6 AM UTC
+  
+  # Run on dependency changes
+  push:
+    branches: [ main ]
+    paths:
+      - 'go.mod'
+      - 'go.sum'
+      - 'agent/requirements.txt'
+  
+  # Manual trigger
+  workflow_dispatch:
+
+jobs:
+  go-vulnerabilities:
+    name: Go Vulnerability Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache: true
+      
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+      
+      - name: Run govulncheck
+        id: govulncheck
+        run: |
+          govulncheck -json ./... > vulns.json || true
+          govulncheck ./... | tee govulncheck.txt
+          
+          # Check if vulnerabilities were found
+          if grep -q "Vulnerability" govulncheck.txt; then
+            echo "vulnerabilities=true" >> $GITHUB_OUTPUT
+            echo "## ⚠️ Go Vulnerabilities Found" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat govulncheck.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          else
+            echo "vulnerabilities=false" >> $GITHUB_OUTPUT
+            echo "## ✅ No Go vulnerabilities found" >> $GITHUB_STEP_SUMMARY
+          fi
+      
+      - name: Upload vulnerability report
+        if: steps.govulncheck.outputs.vulnerabilities == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: go-vulnerability-report
+          path: |
+            vulns.json
+            govulncheck.txt
+      
+      - name: Create issue for vulnerabilities
+        if: steps.govulncheck.outputs.vulnerabilities == 'true' && github.event_name == 'schedule'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const vulns = fs.readFileSync('govulncheck.txt', 'utf8');
+            
+            const issue = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '🔒 Security: Go vulnerabilities detected',
+              body: `## Go Vulnerability Scan Results
+              
+              Vulnerabilities were detected in Go dependencies during the scheduled security scan.
+              
+              ### Details
+              
+              \`\`\`
+              ${vulns}
+              \`\`\`
+              
+              ### Action Required
+              
+              1. Review the vulnerabilities above
+              2. Update affected dependencies
+              3. Test compatibility
+              4. Deploy patch release if critical
+              
+              ### Resources
+              
+              - [Go Vulnerability Database](https://pkg.go.dev/vuln/)
+              - [Dependency Management Guide](docs/DEPENDENCIES.md)
+              - [Security Response Procedures](docs/DEPENDENCIES.md#security-monitoring)
+              
+              **Detected**: ${new Date().toISOString()}
+              **Workflow**: [Run #${context.runNumber}](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+              `,
+              labels: ['security', 'dependencies', 'go', 'priority:high']
+            });
+            
+            console.log(`Created issue #${issue.data.number}`);
+
+  python-vulnerabilities:
+    name: Python Vulnerability Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install pip-audit
+        run: pip install pip-audit
+      
+      - name: Run pip-audit
+        id: pipaudit
+        run: |
+          cd agent
+          pip-audit -r requirements.txt --format json --output vulns.json || true
+          pip-audit -r requirements.txt --desc | tee pipaudit.txt || true
+          
+          # Check if vulnerabilities were found
+          if [ -s vulns.json ] && [ "$(cat vulns.json)" != "[]" ]; then
+            echo "vulnerabilities=true" >> $GITHUB_OUTPUT
+            echo "## ⚠️ Python Vulnerabilities Found" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat pipaudit.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          else
+            echo "vulnerabilities=false" >> $GITHUB_OUTPUT
+            echo "## ✅ No Python vulnerabilities found" >> $GITHUB_STEP_SUMMARY
+          fi
+      
+      - name: Upload vulnerability report
+        if: steps.pipaudit.outputs.vulnerabilities == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-vulnerability-report
+          path: |
+            agent/vulns.json
+            agent/pipaudit.txt
+      
+      - name: Create issue for vulnerabilities
+        if: steps.pipaudit.outputs.vulnerabilities == 'true' && github.event_name == 'schedule'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const vulns = fs.readFileSync('agent/pipaudit.txt', 'utf8');
+            
+            const issue = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '🔒 Security: Python vulnerabilities detected',
+              body: `## Python Vulnerability Scan Results
+              
+              Vulnerabilities were detected in Python dependencies during the scheduled security scan.
+              
+              ### Details
+              
+              \`\`\`
+              ${vulns}
+              \`\`\`
+              
+              ### Action Required
+              
+              1. Review the vulnerabilities above
+              2. Update affected dependencies in agent/requirements.txt
+              3. Test compatibility with LLM providers
+              4. Deploy patch release if critical
+              
+              ### Resources
+              
+              - [PyPI Advisory Database](https://pypi.org/security/)
+              - [Dependency Management Guide](docs/DEPENDENCIES.md)
+              - [Security Response Procedures](docs/DEPENDENCIES.md#security-monitoring)
+              
+              **Detected**: ${new Date().toISOString()}
+              **Workflow**: [Run #${context.runNumber}](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+              `,
+              labels: ['security', 'dependencies', 'python', 'priority:high']
+            });
+            
+            console.log(`Created issue #${issue.data.number}`);
+
+  trivy-scan:
+    name: Trivy Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+      
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+      
+      - name: Generate human-readable report
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'table'
+          output: 'trivy-report.txt'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+      
+      - name: Add report to summary
+        if: always()
+        run: |
+          echo "## 🔍 Trivy Security Scan" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat trivy-report.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+      
+      - name: Upload Trivy report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-security-report
+          path: trivy-report.txt
+
+  dependency-license-check:
+    name: License Compliance Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache: true
+      
+      - name: Install go-licenses
+        run: go install github.com/google/go-licenses@latest
+      
+      - name: Check Go licenses
+        run: |
+          echo "## Go Dependency Licenses" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          go-licenses report ./... --template licenses.tpl > go-licenses.txt || true
+          
+          # Check for problematic licenses
+          if grep -E "(GPL-3.0|AGPL-3.0|SSPL)" go-licenses.txt; then
+            echo "⚠️ **Warning**: Problematic licenses detected" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            grep -E "(GPL-3.0|AGPL-3.0|SSPL)" go-licenses.txt >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ All licenses are compatible" >> $GITHUB_STEP_SUMMARY
+          fi
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install pip-licenses
+        run: pip install pip-licenses
+      
+      - name: Check Python licenses
+        run: |
+          cd agent
+          pip install -r requirements.txt
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Python Dependency Licenses" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          pip-licenses --format=markdown >> $GITHUB_STEP_SUMMARY
+
+  security-summary:
+    name: Security Summary
+    runs-on: ubuntu-latest
+    needs: [go-vulnerabilities, python-vulnerabilities, trivy-scan, dependency-license-check]
+    if: always()
+    
+    steps:
+      - name: Generate summary
+        run: |
+          echo "# 🔒 Security Monitoring Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Date**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> $GITHUB_STEP_SUMMARY
+          echo "**Trigger**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          echo "## Scan Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Scan Type | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Go Vulnerabilities | ${{ needs.go-vulnerabilities.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Python Vulnerabilities | ${{ needs.python-vulnerabilities.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Trivy Scan | ${{ needs.trivy-scan.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| License Check | ${{ needs.dependency-license-check.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Overall status
+          if [[ "${{ needs.go-vulnerabilities.result }}" == "success" ]] && \
+             [[ "${{ needs.python-vulnerabilities.result }}" == "success" ]] && \
+             [[ "${{ needs.trivy-scan.result }}" == "success" ]] && \
+             [[ "${{ needs.dependency-license-check.result }}" == "success" ]]; then
+            echo "## ✅ All security scans passed!" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "No vulnerabilities or license issues detected." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## ⚠️ Security issues detected" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Please review the scan results and take appropriate action." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Response Time SLAs" >> $GITHUB_STEP_SUMMARY
+            echo "- **Critical**: 24 hours response, 48 hours patch" >> $GITHUB_STEP_SUMMARY
+            echo "- **High**: 3 days response, 1 week patch" >> $GITHUB_STEP_SUMMARY
+            echo "- **Medium**: 1 week response, 2 weeks patch" >> $GITHUB_STEP_SUMMARY
+            echo "- **Low**: 2 weeks response, next release patch" >> $GITHUB_STEP_SUMMARY
+          fi
+      
+      - name: Send notification
+        if: failure() && github.event_name == 'schedule'
+        run: |
+          echo "Security scan failed. Issues should be created automatically."
+          echo "Review the workflow run for details."

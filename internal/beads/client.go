@@ -20,6 +20,8 @@ import (
 	"os/exec"
 	"strings"
 	"time"
+
+	"github.com/yourusername/asc/internal/logger"
 )
 
 // BeadsClient defines the interface for interacting with the beads task database.
@@ -82,6 +84,12 @@ func (c *Client) GetTasks(statuses []string) ([]Task, error) {
 		args = append(args, "--status", strings.Join(statuses, ","))
 	}
 	
+	logger.WithFields(logger.Fields{
+		"command": "bd",
+		"args":    args,
+		"db_path": c.dbPath,
+	}).Debug("Executing beads query")
+	
 	cmd := exec.Command("bd", args...)
 	if c.dbPath != "" {
 		cmd.Dir = c.dbPath
@@ -89,6 +97,10 @@ func (c *Client) GetTasks(statuses []string) ([]Task, error) {
 	
 	output, err := cmd.Output()
 	if err != nil {
+		logger.WithFields(logger.Fields{
+			"command": "bd",
+			"args":    args,
+		}).Error("Beads query failed: %v", err)
 		if exitErr, ok := err.(*exec.ExitError); ok {
 			return nil, fmt.Errorf("bd list failed: %w (stderr: %s)", err, string(exitErr.Stderr))
 		}
@@ -98,9 +110,15 @@ func (c *Client) GetTasks(statuses []string) ([]Task, error) {
 	var tasks []Task
 	if len(output) > 0 {
 		if err := json.Unmarshal(output, &tasks); err != nil {
+			logger.Error("Failed to parse beads output: %v", err)
 			return nil, fmt.Errorf("failed to parse bd output: %w", err)
 		}
 	}
+	
+	logger.WithFields(logger.Fields{
+		"task_count": len(tasks),
+		"statuses":   statuses,
+	}).Debug("Beads query completed successfully")
 	
 	return tasks, nil
 }
@@ -188,6 +206,10 @@ func (c *Client) Refresh() error {
 		return fmt.Errorf("dbPath not configured")
 	}
 	
+	logger.WithFields(logger.Fields{
+		"db_path": c.dbPath,
+	}).Debug("Executing git pull on beads repository")
+	
 	cmd := exec.Command("git", "pull")
 	cmd.Dir = c.dbPath
 	
@@ -195,10 +217,23 @@ func (c *Client) Refresh() error {
 	if err != nil {
 		// Check if it's a merge conflict
 		if strings.Contains(string(output), "CONFLICT") {
+			logger.WithFields(logger.Fields{
+				"db_path": c.dbPath,
+				"output":  string(output),
+			}).Error("Git pull failed with merge conflict")
 			return fmt.Errorf("git pull failed with merge conflict: %s", string(output))
 		}
+		logger.WithFields(logger.Fields{
+			"db_path": c.dbPath,
+			"output":  string(output),
+		}).Error("Git pull failed: %v", err)
 		return fmt.Errorf("git pull failed: %w (output: %s)", err, string(output))
 	}
+	
+	logger.WithFields(logger.Fields{
+		"db_path": c.dbPath,
+		"output":  string(output),
+	}).Debug("Git pull completed successfully")
 	
 	return nil
 }

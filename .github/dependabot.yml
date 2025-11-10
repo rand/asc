@@ -1,0 +1,106 @@
+version: 2
+updates:
+  # Go modules
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "yourusername"
+    labels:
+      - "dependencies"
+      - "go"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    # Pin critical dependencies to prevent breaking changes
+    ignore:
+      # Only allow patch updates for critical dependencies
+      - dependency-name: "github.com/charmbracelet/bubbletea"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "github.com/charmbracelet/lipgloss"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "github.com/spf13/cobra"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "github.com/spf13/viper"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "github.com/gorilla/websocket"
+        update-types: ["version-update:semver-major"]
+    # Group minor and patch updates
+    groups:
+      go-dependencies:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+      go-security:
+        patterns:
+          - "*"
+        update-types:
+          - "patch"
+        dependency-type: "direct"
+  
+  # Python dependencies
+  - package-ecosystem: "pip"
+    directory: "/agent"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "yourusername"
+    labels:
+      - "dependencies"
+      - "python"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    # Pin LLM SDKs to prevent breaking API changes
+    ignore:
+      # Review major updates manually
+      - dependency-name: "anthropic"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "openai"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "google-generativeai"
+        update-types: ["version-update:semver-major"]
+    groups:
+      python-dependencies:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+      python-security:
+        patterns:
+          - "*"
+        update-types:
+          - "patch"
+        dependency-type: "direct"
+  
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "yourusername"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "chore(ci)"
+      include: "scope"
+    # Group all GitHub Actions updates
+    groups:
+      github-actions:
+        patterns:
+          - "*"

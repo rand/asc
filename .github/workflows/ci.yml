@@ -1,0 +1,244 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: latest
+          args: --timeout=5m
+
+  test:
+    name: Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        go-version: ['1.21', '1.22']
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+
+      - name: Cache Go modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ matrix.go-version }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-${{ matrix.go-version }}-
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Verify dependencies
+        run: go mod verify
+
+      - name: Run tests
+        run: go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.out
+          flags: unittests
+          name: codecov-${{ matrix.os }}-go${{ matrix.go-version }}
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux, darwin]
+        goarch: [amd64, arm64]
+        exclude:
+          - goos: darwin
+            goarch: arm64
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Build binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          make build
+          ls -lh build/
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: asc-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: build/asc
+
+  integration-test:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r agent/requirements.txt
+
+      - name: Build asc
+        run: make build
+
+      - name: Run integration tests
+        run: go test -v ./test -run Integration -timeout 10m
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Gosec Security Scanner
+        uses: securego/gosec@master
+        with:
+          args: '-no-fail -fmt sarif -out results.sarif ./...'
+
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: results.sarif
+
+  dependency-check:
+    name: Dependency Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Check for vulnerabilities
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
+
+  quality-summary:
+    name: Quality Gate Summary
+    runs-on: ubuntu-latest
+    needs: [lint, test, build, integration-test, security, dependency-check]
+    if: always()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download coverage reports
+        uses: actions/download-artifact@v3
+        continue-on-error: true
+
+      - name: Generate quality summary
+        run: |
+          cat > quality-summary.md << 'EOF'
+          # Quality Gate Summary
+          
+          **Commit**: ${{ github.sha }}
+          **Branch**: ${{ github.ref_name }}
+          **Triggered by**: ${{ github.event_name }}
+          **Run**: ${{ github.run_number }}
+          
+          ## Status
+          
+          | Check | Status |
+          |-------|--------|
+          | Linting | ${{ needs.lint.result == 'success' && '✅ Passed' || '❌ Failed' }} |
+          | Unit Tests | ${{ needs.test.result == 'success' && '✅ Passed' || '❌ Failed' }} |
+          | Build | ${{ needs.build.result == 'success' && '✅ Passed' || '❌ Failed' }} |
+          | Integration Tests | ${{ needs.integration-test.result == 'success' && '✅ Passed' || '❌ Failed' }} |
+          | Security Scan | ${{ needs.security.result == 'success' && '✅ Passed' || '❌ Failed' }} |
+          | Dependency Check | ${{ needs.dependency-check.result == 'success' && '✅ Passed' || '❌ Failed' }} |
+          
+          ## Quality Metrics
+          
+          - **Code Coverage**: See Codecov report
+          - **Security Issues**: See Security tab
+          - **Vulnerabilities**: See Dependency Check results
+          
+          ## Next Steps
+          
+          EOF
+          
+          if [ "${{ needs.lint.result }}" = "success" ] && \
+             [ "${{ needs.test.result }}" = "success" ] && \
+             [ "${{ needs.build.result }}" = "success" ] && \
+             [ "${{ needs.integration-test.result }}" = "success" ] && \
+             [ "${{ needs.security.result }}" = "success" ] && \
+             [ "${{ needs.dependency-check.result }}" = "success" ]; then
+            echo "✅ **All quality gates passed!** This PR is ready for review." >> quality-summary.md
+          else
+            echo "❌ **Some quality gates failed.** Please review the failed checks above." >> quality-summary.md
+          fi
+          
+          cat quality-summary.md
+
+      - name: Comment PR with quality summary
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const summary = fs.readFileSync('quality-summary.md', 'utf8');
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            });
+
+  all-checks:
+    name: All Checks Passed
+    runs-on: ubuntu-latest
+    needs: [lint, test, build, integration-test, security, dependency-check]
+    steps:
+      - name: All checks passed
+        run: echo "All CI checks passed successfully!"

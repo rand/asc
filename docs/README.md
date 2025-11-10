@@ -25,18 +25,45 @@ docs/
   - [Design](../.kiro/specs/agent-stack-controller/design.md)
   - [Tasks](../.kiro/specs/agent-stack-controller/tasks.md)
 
+### API and Reference
+- [API Reference](API_REFERENCE.md) - Complete API documentation
+- [Configuration Reference](CONFIGURATION.md) - Configuration guide
+- [Architecture Decision Records](ADR_INDEX.md) - Design decisions and rationale
+
+### Operations
+- [Operator's Handbook](OPERATORS_HANDBOOK.md) - Day-to-day operations guide
+- [Upgrade Guide](UPGRADE_GUIDE.md) - Version upgrades and migrations
+- [FAQ](FAQ.md) - Frequently asked questions
+
 ### Component Documentation
 - [Agent Adapter](../agent/README.md) - Python agent framework documentation
 - [Agent Validation](../agent/VALIDATION.md) - Agent implementation validation report
 
+### Developer Experience
+- [Developer Experience Overview](DEVELOPER_EXPERIENCE.md) - Complete DX documentation
+- [Contributing Guide](../CONTRIBUTING.md) - How to contribute to the project
+- [Quick Start for Developers](../QUICK_START_DEV.md) - Get started in 5 minutes
+- [Testing Best Practices](../TESTING.md) - How to write good tests
+- [Debugging Guide](../DEBUGGING.md) - Tools and techniques for debugging
+- [Troubleshooting](../TROUBLESHOOTING.md) - Solutions to common issues
+- [Code Review Checklist](../CODE_REVIEW_CHECKLIST.md) - What reviewers look for
+- [Security Policy](../SECURITY.md) - Security practices and reporting
+
+### Dependency Management
+- [Dependencies Guide](DEPENDENCIES.md) - Comprehensive dependency documentation
+- [Breaking Changes Log](BREAKING_CHANGES.md) - Dependency breaking changes tracking
+- [Known Issues](KNOWN_ISSUES.md) - Known dependency issues and workarounds
+
 ### Security
 - [Security Overview](security/SECURITY.md) - Security features and best practices
+- [Security Best Practices](security/SECURITY_BEST_PRACTICES.md) - Security guidelines
 - [Security Improvements](security/SECURITY_IMPROVEMENTS.md) - Implemented security enhancements
-- [Streamlined Security](security/STREAMLINED_SECURITY.md) - Simplified security approach
+- [Incident Response Plan](security/INCIDENT_RESPONSE_PLAN.md) - Security incident procedures
 
 ### Testing
 - [Test Report](testing/TEST_REPORT.md) - Comprehensive test results
 - [Testing Summary](testing/TESTING_SUMMARY.md) - Test coverage summary
+- [Usability Testing Guide](testing/USABILITY_TESTING_GUIDE.md) - User testing procedures
 
 ## Archived Documentation
 
@@ -79,15 +106,17 @@ Historical documents that may be useful for reference but are no longer actively
 
 ### For New Contributors
 1. Start with [Main README](../README.md)
-2. Read [ASC Specification](specs/asc-spec.md)
-3. Review [Requirements](../.kiro/specs/agent-stack-controller/requirements.md)
-4. Check [Security Overview](security/SECURITY.md)
+2. Read [Quick Start for Developers](../QUICK_START_DEV.md)
+3. Review [Contributing Guide](../CONTRIBUTING.md)
+4. Check [ASC Specification](specs/asc-spec.md)
 
 ### For Developers
-1. [Design Document](../.kiro/specs/agent-stack-controller/design.md)
-2. [Task List](../.kiro/specs/agent-stack-controller/tasks.md)
-3. [Agent Documentation](../agent/README.md)
-4. [Test Reports](testing/)
+1. [Developer Experience Overview](DEVELOPER_EXPERIENCE.md)
+2. [Design Document](../.kiro/specs/agent-stack-controller/design.md)
+3. [Task List](../.kiro/specs/agent-stack-controller/tasks.md)
+4. [Testing Best Practices](../TESTING.md)
+5. [Debugging Guide](../DEBUGGING.md)
+6. [Agent Documentation](../agent/README.md)
 
 ### For Security Review
 1. [Security Overview](security/SECURITY.md)

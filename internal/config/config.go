@@ -25,7 +25,8 @@ type Config struct {
 // CoreConfig contains core system configuration including paths to
 // essential components like the beads task database.
 type CoreConfig struct {
-	BeadsDBPath string `mapstructure:"beads_db_path"` // Path to the beads task database repository
+	BeadsDBPath     string `mapstructure:"beads_db_path"`     // Path to the beads task database repository
+	AutoRecovery    *bool  `mapstructure:"auto_recovery"`     // Enable automatic agent recovery (default: true if nil)
 }
 
 // ServicesConfig contains configuration for external services that

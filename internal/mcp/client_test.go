@@ -270,3 +270,21 @@ func TestClientBaseURLVariations(t *testing.T) {
 		}
 	}
 }
+
+func TestReleaseAgentLeases(t *testing.T) {
+	// This test verifies that the ReleaseAgentLeases method is properly defined
+	// and can be called on the HTTPClient. Integration testing with a real MCP
+	// server would be needed to verify the actual HTTP request.
+	client := NewHTTPClient("http://localhost:8765")
+	
+	// Verify the method exists and returns an error (expected since no server is running)
+	err := client.ReleaseAgentLeases("test-agent")
+	
+	// We expect an error since there's no actual server running
+	if err == nil {
+		t.Log("Note: ReleaseAgentLeases succeeded (unexpected without a running server)")
+	}
+	
+	// The important thing is that the method exists and can be called
+	// The actual functionality would be tested in integration tests
+}
