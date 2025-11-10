@@ -119,8 +119,8 @@ func (m Model) getBeadsConnectionStatus() string {
 	connectedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("10"))
 	disconnectedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("9"))
 	
-	// Check if beads client is accessible by checking if we have any tasks or if there's no error
-	if m.beadsClient != nil && m.err == nil {
+	// Check beads connection status
+	if m.beadsConnected {
 		return connectedStyle.Render("●")
 	}
 	return disconnectedStyle.Render("○")
@@ -129,11 +129,18 @@ func (m Model) getBeadsConnectionStatus() string {
 // getMCPConnectionStatus returns a styled connection status for MCP
 func (m Model) getMCPConnectionStatus() string {
 	connectedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("10"))
+	warningStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("11"))
 	disconnectedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("9"))
 	
-	// Check if MCP client is accessible
-	if m.mcpClient != nil && m.err == nil {
-		return connectedStyle.Render("●")
+	// Check WebSocket connection status first (preferred)
+	if m.wsConnected {
+		return connectedStyle.Render("● ws")
 	}
+	
+	// Fallback to HTTP polling
+	if m.mcpClient != nil {
+		return warningStyle.Render("● http")
+	}
+	
 	return disconnectedStyle.Render("○")
 }

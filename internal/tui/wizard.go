@@ -11,6 +11,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/yourusername/asc/internal/check"
+	"github.com/yourusername/asc/internal/secrets"
 )
 
 // wizardStep represents the current step in the wizard
@@ -21,26 +22,30 @@ const (
 	stepChecking
 	stepCheckResults
 	stepInstallPrompt
+	stepAgeSetup
 	stepBackupPrompt
 	stepAPIKeys
 	stepGenerating
+	stepEncrypting
 	stepValidating
 	stepComplete
 )
 
 // Wizard manages the interactive setup process
 type Wizard struct {
-	checker      check.Checker
-	checkResults []check.CheckResult
+	checker        check.Checker
+	checkResults   []check.CheckResult
+	secretsManager *secrets.Manager
 }
 
 // wizardModel is the bubbletea model for the wizard
 type wizardModel struct {
-	step         wizardStep
-	checker      check.Checker
-	checkResults []check.CheckResult
-	width        int
-	height       int
+	step           wizardStep
+	checker        check.Checker
+	checkResults   []check.CheckResult
+	secretsManager *secrets.Manager
+	width          int
+	height         int
 	
 	// API key inputs
 	claudeInput  textinput.Model
@@ -50,16 +55,20 @@ type wizardModel struct {
 	apiKeys      map[string]string
 	
 	// State flags
-	needsInstall bool
-	needsBackup  bool
-	confirmed    bool
-	err          error
+	needsInstall   bool
+	needsAgeSetup  bool
+	ageInstalled   bool
+	needsBackup    bool
+	confirmed      bool
+	encryptSecrets bool
+	err            error
 }
 
 // NewWizard creates a new setup wizard
 func NewWizard() *Wizard {
 	return &Wizard{
-		checker: check.NewChecker("asc.toml", ".env"),
+		checker:        check.NewChecker("asc.toml", ".env"),
+		secretsManager: secrets.NewManager(),
 	}
 }
 
@@ -169,6 +178,19 @@ func (m wizardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.err = msg.err
 			return m, tea.Quit
 		}
+		// After generating, check if we should encrypt
+		if m.encryptSecrets {
+			m.step = stepEncrypting
+			return m, encryptSecrets(m.secretsManager)
+		}
+		m.step = stepValidating
+		return m, runValidation()
+		
+	case encryptCompleteMsg:
+		if msg.err != nil {
+			m.err = msg.err
+			return m, tea.Quit
+		}
 		m.step = stepValidating
 		return m, runValidation()
 		
@@ -196,13 +218,21 @@ func (m wizardModel) handleEnter() (tea.Model, tea.Cmd) {
 			m.needsInstall = true
 			m.step = stepInstallPrompt
 		} else {
-			// Check if config files exist
-			m.needsBackup = fileExists("asc.toml") || fileExists(".env")
-			if m.needsBackup {
-				m.step = stepBackupPrompt
+			// Check age installation and setup
+			m.ageInstalled = m.secretsManager.IsAgeInstalled()
+			m.needsAgeSetup = !m.secretsManager.KeyExists()
+			
+			if !m.ageInstalled || m.needsAgeSetup {
+				m.step = stepAgeSetup
 			} else {
-				m.step = stepAPIKeys
-				m.claudeInput.Focus()
+				// Check if config files exist
+				m.needsBackup = fileExists("asc.toml") || fileExists(".env")
+				if m.needsBackup {
+					m.step = stepBackupPrompt
+				} else {
+					m.step = stepAPIKeys
+					m.claudeInput.Focus()
+				}
 			}
 		}
 		return m, nil
@@ -213,7 +243,52 @@ func (m wizardModel) handleEnter() (tea.Model, tea.Cmd) {
 			fmt.Println("\nPlease install the missing dependencies and run 'asc init' again.")
 			return m, tea.Quit
 		}
-		// User doesn't want to install - check for backup
+		// User doesn't want to install - check age setup
+		m.ageInstalled = m.secretsManager.IsAgeInstalled()
+		m.needsAgeSetup = !m.secretsManager.KeyExists()
+		
+		if !m.ageInstalled || m.needsAgeSetup {
+			m.step = stepAgeSetup
+		} else {
+			// Check for backup
+			m.needsBackup = fileExists("asc.toml") || fileExists(".env")
+			if m.needsBackup {
+				m.step = stepBackupPrompt
+			} else {
+				m.step = stepAPIKeys
+				m.claudeInput.Focus()
+			}
+		}
+		return m, nil
+		
+	case stepAgeSetup:
+		if !m.ageInstalled {
+			if m.confirmed {
+				// Show installation instructions and exit
+				fmt.Println("\nInstall age encryption:")
+				fmt.Println("  macOS:   brew install age")
+				fmt.Println("  Linux:   apt install age")
+				fmt.Println("  Windows: scoop install age")
+				fmt.Println("\nThen run 'asc init' again.")
+				return m, tea.Quit
+			}
+			// Skip age setup
+			m.encryptSecrets = false
+		} else if m.needsAgeSetup {
+			if m.confirmed {
+				// Generate age key
+				if err := m.secretsManager.GenerateKey(); err != nil {
+					m.err = fmt.Errorf("failed to generate age key: %w", err)
+					return m, tea.Quit
+				}
+				m.encryptSecrets = true
+			} else {
+				// Skip encryption
+				m.encryptSecrets = false
+			}
+		}
+		
+		// Continue to backup check
 		m.needsBackup = fileExists("asc.toml") || fileExists(".env")
 		if m.needsBackup {
 			m.step = stepBackupPrompt
@@ -251,6 +326,19 @@ func (m wizardModel) handleEnter() (tea.Model, tea.Cmd) {
 		
 		m.step = stepGenerating
 		return m, generateConfigFiles(m.apiKeys)
+		
+	case stepGenerating:
+		// After generating config, encrypt if enabled
+		if m.encryptSecrets {
+			m.step = stepEncrypting
+			return m, encryptSecrets(m.secretsManager)
+		}
+		m.step = stepValidating
+		return m, runValidation()
+		
+	case stepEncrypting:
+		m.step = stepValidating
+		return m, runValidation()
 	}
 	
 	return m, nil
@@ -308,12 +396,16 @@ func (m wizardModel) View() string {
 		return m.viewCheckResults()
 	case stepInstallPrompt:
 		return m.viewInstallPrompt()
+	case stepAgeSetup:
+		return m.viewAgeSetup()
 	case stepBackupPrompt:
 		return m.viewBackupPrompt()
 	case stepAPIKeys:
 		return m.viewAPIKeys()
 	case stepGenerating:
 		return m.viewGenerating()
+	case stepEncrypting:
+		return m.viewEncrypting()
 	case stepValidating:
 		return m.viewValidating()
 	case stepComplete:
@@ -345,7 +437,8 @@ func (m wizardModel) viewWelcome() string {
 	s.WriteString(textStyle.Render("This wizard will guide you through:"))
 	s.WriteString("\n\n")
 	s.WriteString("  • Checking for required dependencies\n")
-	s.WriteString("  • Configuring API keys\n")
+	s.WriteString("  • Setting up secure secrets encryption\n")
+	s.WriteString("  • Configuring API keys securely\n")
 	s.WriteString("  • Generating default configuration files\n")
 	s.WriteString("  • Validating your setup\n")
 	s.WriteString("\n")
@@ -674,4 +767,83 @@ func generateEnvFile(apiKeys map[string]string) error {
 	
 	// Set restrictive permissions for .env file
 	return os.WriteFile(".env", []byte(content.String()), 0600)
+}
+
+// viewAgeSetup displays the age encryption setup screen
+func (m wizardModel) viewAgeSetup() string {
+	titleStyle := lipgloss.NewStyle().
+		Bold(true).
+		MarginTop(2).
+		MarginBottom(1)
+	
+	textStyle := lipgloss.NewStyle().
+		MarginBottom(1)
+	
+	promptStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("11")).
+		Bold(true).
+		MarginTop(2)
+	
+	var s strings.Builder
+	s.WriteString(titleStyle.Render("🔐 Secure Secrets Management"))
+	s.WriteString("\n\n")
+	
+	if !m.ageInstalled {
+		s.WriteString(textStyle.Render("age encryption is not installed."))
+		s.WriteString("\n\n")
+		s.WriteString("age provides secure encryption for your API keys, preventing\n")
+		s.WriteString("accidental exposure in git repositories.\n")
+		s.WriteString("\n")
+		s.WriteString("Without age, your API keys will be stored in plaintext.\n")
+		s.WriteString("\n")
+		s.WriteString(promptStyle.Render("Install age now? (y/N)"))
+	} else if m.needsAgeSetup {
+		s.WriteString(textStyle.Render("age is installed! Let's set up encryption."))
+		s.WriteString("\n\n")
+		s.WriteString("This will:\n")
+		s.WriteString("  • Generate a secure encryption key (~/.asc/age.key)\n")
+		s.WriteString("  • Encrypt your .env file automatically\n")
+		s.WriteString("  • Keep your secrets safe in git\n")
+		s.WriteString("\n")
+		s.WriteString("Your API keys will be encrypted and only .env.age will be\n")
+		s.WriteString("committed to git. The plaintext .env is automatically gitignored.\n")
+		s.WriteString("\n")
+		s.WriteString(promptStyle.Render("Set up encryption? (Y/n)"))
+	}
+	
+	return s.String()
+}
+
+// viewEncrypting displays the encryption progress screen
+func (m wizardModel) viewEncrypting() string {
+	spinnerStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("10")).
+		MarginTop(2)
+	
+	return spinnerStyle.Render("🔐 Encrypting secrets...")
+}
+
+// encryptSecrets encrypts the .env file
+type encryptCompleteMsg struct {
+	err error
+}
+
+func encryptSecrets(manager *secrets.Manager) tea.Cmd {
+	return func() tea.Msg {
+		// Encrypt .env to .env.age
+		if err := manager.EncryptEnv(".env"); err != nil {
+			return encryptCompleteMsg{err: err}
+		}
+		return encryptCompleteMsg{}
+	}
+}
+
+// Update the message handling to include encrypt complete
+func (m wizardModel) handleEncryptComplete(msg encryptCompleteMsg) (tea.Model, tea.Cmd) {
+	if msg.err != nil {
+		m.err = msg.err
+		return m, tea.Quit
+	}
+	m.step = stepValidating
+	return m, runValidation()
 }

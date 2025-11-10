@@ -36,6 +36,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case testResultMsg:
 		return m.handleTestResult(msg)
+
+	case wsEventMsg:
+		return m.handleWSEvent(msg)
 	}
 
 	return m, nil
@@ -69,10 +72,11 @@ func (m Model) handleResize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
 
 // handleTick processes periodic tick events
 func (m Model) handleTick() (tea.Model, tea.Cmd) {
-	// Schedule next tick and refresh data
+	// Schedule next tick and refresh beads data only
+	// MCP data is updated via WebSocket events
 	return m, tea.Batch(
 		tickCmd(),
-		refreshDataCmd(m),
+		refreshBeadsCmd(m),
 	)
 }
 
@@ -94,6 +98,63 @@ func (m Model) handleTestResult(msg testResultMsg) (tea.Model, tea.Cmd) {
 	}
 	
 	return m, nil
+}
+
+// handleWSEvent processes WebSocket events from the MCP server
+func (m Model) handleWSEvent(msg wsEventMsg) (tea.Model, tea.Cmd) {
+	event := mcp.Event(msg)
+	
+	switch event.Type {
+	case mcp.EventConnected:
+		// WebSocket connected successfully
+		m.wsConnected = true
+		m.err = nil
+		
+	case mcp.EventDisconnected:
+		// WebSocket disconnected - will auto-reconnect
+		m.wsConnected = false
+		
+	case mcp.EventAgentStatus:
+		// Agent status changed - update the agent in our list
+		if event.AgentStatus != nil {
+			m.updateAgentStatus(*event.AgentStatus)
+		}
+		
+	case mcp.EventNewMessage:
+		// New message received - add to message list
+		if event.Message != nil {
+			m.messages = append(m.messages, *event.Message)
+			
+			// Limit message buffer to last 100 messages
+			if len(m.messages) > 100 {
+				m.messages = m.messages[len(m.messages)-100:]
+			}
+		}
+		
+	case mcp.EventError:
+		// WebSocket error - log but don't fail
+		// We'll continue with polling fallback
+		if event.Error != "" {
+			m.err = fmt.Errorf("websocket error: %s", event.Error)
+		}
+	}
+	
+	// Continue listening for next WebSocket event
+	return m, waitForWSEventCmd(m.wsClient)
+}
+
+// updateAgentStatus updates or adds an agent status in the agents list
+func (m *Model) updateAgentStatus(newStatus mcp.AgentStatus) {
+	// Find and update existing agent
+	for i, agent := range m.agents {
+		if agent.Name == newStatus.Name {
+			m.agents[i] = newStatus
+			return
+		}
+	}
+	
+	// Agent not found - add it
+	m.agents = append(m.agents, newStatus)
 }
 
 // runTestCmd executes the test command asynchronously

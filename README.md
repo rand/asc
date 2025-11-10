@@ -267,26 +267,78 @@ phases = ["testing", "validation"]
 - `model` - LLM provider: `claude`, `gemini`, `gpt-4`, `codex`
 - `phases` - Array of workflow phases this agent handles
 
-### Environment Variables (.env)
+### Secure Secrets Management
 
-Store your API keys in a `.env` file in the project root:
+**IMPORTANT**: Never commit unencrypted API keys to git!
 
-```bash
-# Required for Claude models
-CLAUDE_API_KEY=sk-ant-...
+asc uses [age encryption](https://github.com/FiloSottile/age) for automatic, secure secrets management:
 
-# Required for OpenAI models (GPT-4, Codex)
-OPENAI_API_KEY=sk-...
-
-# Required for Gemini models
-GOOGLE_API_KEY=...
-```
-
-The `.env` file should have restricted permissions:
+#### Initial Setup (Automatic)
 
 ```bash
-chmod 600 .env
+# Run the interactive setup wizard
+asc init
 ```
+
+The wizard will:
+1. ✅ Check if age is installed (offers to guide installation)
+2. ✅ Generate encryption key automatically
+3. ✅ Collect your API keys securely (masked input)
+4. ✅ Encrypt secrets automatically
+5. ✅ Set up .gitignore to prevent accidents
+
+**That's it!** Your secrets are now encrypted and safe.
+
+#### What Happens Behind the Scenes
+
+```
+asc init creates:
+  ~/.asc/age.key    → Your encryption key (never commit!)
+  .env              → Plaintext secrets (auto-gitignored)
+  .env.age          → Encrypted secrets (safe to commit!)
+  asc.toml          → Configuration file
+```
+
+#### Daily Usage
+
+```bash
+# Start agents (automatically decrypts secrets)
+asc up
+
+# Update secrets (re-encrypts automatically)
+asc secrets encrypt
+
+# Check encryption status
+asc secrets status
+```
+
+#### Manual Secrets Management (Advanced)
+
+If you need manual control:
+
+```bash
+# Decrypt secrets
+asc secrets decrypt
+
+# Edit .env with your changes
+vim .env
+
+# Re-encrypt
+asc secrets encrypt
+
+# Commit encrypted file
+git add .env.age
+git commit -m "Update secrets"
+```
+
+#### Security Best Practices
+
+- ✅ `.env.age` (encrypted) - Safe to commit to git
+- ❌ `.env` (plaintext) - NEVER commit (automatically gitignored)
+- ✅ `~/.asc/age.key` - Keep safe, backup securely, NEVER commit
+- ✅ Use `asc secrets rotate` periodically to rotate encryption keys
+
+The `.env` file is automatically added to `.gitignore` and will have restrictive permissions (0600) set when decrypted.
 
 ### Agent Environment Variables
 
@@ -326,6 +378,59 @@ Codex      │    ✓     │       ✓        │    ✓    │    ✓     │
 ```
 
 Multiple agents can handle the same phase, competing for tasks based on availability.
+
+## Security
+
+### Secrets Management
+
+asc uses **age encryption** for secure secrets management to prevent accidental exposure of API keys:
+
+**What's Protected:**
+- API keys (Claude, OpenAI, Google)
+- Environment variables
+- Sensitive configuration
+
+**How It Works:**
+1. Your secrets are stored in `.env` (plaintext, gitignored)
+2. You encrypt them to `.env.age` using your age key
+3. Only `.env.age` is committed to git (safe!)
+4. Team members decrypt with their own age keys
+
+**Key Management:**
+- Your age key is stored in `~/.asc/age.key`
+- Never commit this key to git
+- Back it up securely (password manager, encrypted backup)
+- Share your public key with team members for collaboration
+- Rotate keys periodically with `asc secrets rotate`
+
+**Collaboration:**
+```bash
+# Share your public key with team
+asc secrets status  # Shows your public key
+
+# Team member encrypts for you
+age -r <your-public-key> -o .env.age .env
+
+# You decrypt with your private key
+asc secrets decrypt
+```
+
+### File Permissions
+
+asc automatically sets restrictive permissions on sensitive files:
+- `.env`: 0600 (owner read/write only)
+- `~/.asc/age.key`: 0600 (owner read/write only)
+- PID files: 0644 (owner read/write, others read)
+- Log files: 0644 (owner read/write, others read)
+
+### Best Practices
+
+1. **Never commit plaintext secrets** - Always use encrypted `.env.age`
+2. **Use .gitignore** - Ensure `.env` is gitignored (done automatically)
+3. **Rotate keys regularly** - Use `asc secrets rotate` every 90 days
+4. **Backup your age key** - Store securely in password manager
+5. **Audit access** - Review who has access to encrypted secrets
+6. **Use environment-specific files** - `.env.prod.age`, `.env.staging.age`
 
 ## Troubleshooting
 
@@ -541,6 +646,23 @@ asc/
 - **uv** - Fast Python package manager
 - **docker** - If agents require containerization
 
+## Documentation
+
+Comprehensive documentation is available in the `docs/` directory:
+
+- **[Documentation Index](docs/README.md)** - Complete documentation guide
+- **[Specifications](docs/specs/)** - Design documents and specifications
+- **[Security](docs/security/)** - Security features and best practices
+- **[Testing](docs/testing/)** - Test reports and coverage
+- **[Agent Adapter](agent/README.md)** - Python agent framework documentation
+
+### Quick Links
+
+- [Requirements](/.kiro/specs/agent-stack-controller/requirements.md) - System requirements
+- [Design](/.kiro/specs/agent-stack-controller/design.md) - Architecture and design
+- [Tasks](/.kiro/specs/agent-stack-controller/tasks.md) - Implementation tasks
+- [Agent Validation](agent/VALIDATION.md) - Agent implementation validation
+
 ## Contributing
 
 Contributions are welcome! Please:
@@ -549,7 +671,10 @@ Contributions are welcome! Please:
 2. Create a feature branch
 3. Make your changes
 4. Add tests for new functionality
-5. Submit a pull request
+5. Update documentation as needed
+6. Submit a pull request
+
+See [Documentation Guidelines](docs/README.md#documentation-guidelines) for documentation standards.
 
 ## License
 

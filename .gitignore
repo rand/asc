@@ -1,0 +1,46 @@
+# Binaries
+build/
+asc
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test artifacts
+*.test
+*.out
+coverage.out
+coverage.html
+
+# Go workspace
+vendor/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets - NEVER commit these!
+.env
+.env.*
+!.env.example
+*.key
+secrets/
+.secrets/
+
+# Age encrypted secrets (these are safe to commit)
+# .env.age files are encrypted and can be committed
+
+# Runtime
+~/.asc/
+*.log
+*.pid
+
+# Local config overrides
+asc.local.toml

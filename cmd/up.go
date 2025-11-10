@@ -14,6 +14,7 @@ import (
 	"github.com/yourusername/asc/internal/config"
 	"github.com/yourusername/asc/internal/mcp"
 	"github.com/yourusername/asc/internal/process"
+	"github.com/yourusername/asc/internal/secrets"
 	"github.com/yourusername/asc/internal/tui"
 )
 
@@ -36,6 +37,21 @@ func runUp(cmd *cobra.Command, args []string) {
 	// Default paths
 	configPath := "asc.toml"
 	envPath := ".env"
+
+	// Step 0: Auto-decrypt secrets if needed
+	if _, err := os.Stat(envPath); os.IsNotExist(err) {
+		// Check if encrypted version exists
+		if _, err := os.Stat(envPath + ".age"); err == nil {
+			fmt.Println("🔐 Decrypting secrets...")
+			secretsManager := secrets.NewManager()
+			if err := secretsManager.DecryptEnv(envPath); err != nil {
+				fmt.Fprintf(os.Stderr, "Failed to decrypt secrets: %v\n", err)
+				fmt.Fprintln(os.Stderr, "Run 'asc secrets decrypt' manually or 'asc init' to set up encryption.")
+				os.Exit(1)
+			}
+			fmt.Println("✓ Secrets decrypted")
+		}
+	}
 
 	// Step 1: Run silent dependency check
 	checker := check.NewChecker(configPath, envPath)
@@ -231,6 +247,9 @@ func runTUI(cfg *config.Config, procManager process.ProcessManager) error {
 
 	// Check if there was an error in the final model state
 	if m, ok := finalModel.(tui.Model); ok {
+		// Cleanup WebSocket and other resources
+		m.Cleanup()
+		
 		if m.GetError() != nil {
 			return fmt.Errorf("TUI exited with error: %w", m.GetError())
 		}

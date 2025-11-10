@@ -319,3 +319,186 @@
     - Create installation guide in README
     - Document go install method
     - _Requirements: All, 1.1_
+
+- [x] 21. Implement agent adapter framework (Python)
+  - [x] 21.1 Create agent_adapter.py entry point
+    - Parse environment variables (AGENT_NAME, AGENT_MODEL, AGENT_PHASES, MCP_MAIL_URL, BEADS_DB_PATH, API keys)
+    - Initialize logging to ~/.asc/logs/{agent_name}.log
+    - Set up signal handlers for graceful shutdown (SIGTERM, SIGINT)
+    - Initialize LLM client based on AGENT_MODEL environment variable
+    - Enter main event loop with error handling
+    - _Requirements: 2.4, 2.5, 11.3, 11.4, 11.5_
+  
+  - [x] 21.2 Implement LLM client abstraction
+    - Create base LLMClient abstract class with complete() interface
+    - Implement ClaudeClient using Anthropic SDK with API error handling
+    - Implement GeminiClient using Google AI SDK with rate limiting
+    - Implement OpenAIClient using OpenAI SDK for GPT-4 and Codex
+    - Add retry logic with exponential backoff for API failures
+    - Implement token counting and cost tracking
+    - _Requirements: 11.4, 11.5_
+  
+  - [x] 21.3 Implement Hephaestus phase loop
+    - Poll beads for tasks matching agent phases using bd CLI
+    - Request file leases via mcp_agent_mail POST /leases endpoint
+    - Build context from task description and relevant files
+    - Load playbook lessons into context
+    - Call LLM with structured prompts including context and playbook
+    - Parse LLM response and extract action plan
+    - Execute file operations (read, write, delete) with safety checks
+    - Update beads task status using bd update command
+    - Release file leases via POST /leases/{id}/release
+    - _Requirements: 2.4, 2.5, 5.1, 7.7, 8.1, 9.1, 11.3, 11.4, 11.5, 11.6_
+  
+  - [x] 21.4 Implement ACE (Agentic Context Engineering)
+    - Create playbook storage structure in ~/.asc/playbooks/{agent_name}/
+    - Define playbook schema: lesson_id, context, action, outcome, learned
+    - Implement reflection prompt after task completion
+    - Extract structured lessons from LLM reflection response
+    - Categorize lessons by task type and score relevance
+    - Curate playbook by deduplicating and merging similar lessons
+    - Prune outdated lessons and maintain max playbook size
+    - Load relevant playbook lessons into context for future tasks
+    - _Requirements: 11.3, 11.4_
+  
+  - [x] 21.5 Implement agent heartbeat system
+    - Send periodic heartbeat messages to mcp_agent_mail every 30 seconds
+    - Include agent_name, status (idle/working/error), current_task, timestamp
+    - Track state transitions and report changes immediately
+    - Handle MCP connection failures with exponential backoff retry
+    - Continue working if MCP temporarily unavailable
+    - _Requirements: 7.7, 9.1_
+  
+  - [x] 21.6 Create agent package structure and dependencies
+    - Create agent/ directory with __init__.py and all module files
+    - Write requirements.txt with dependencies: anthropic, google-generativeai, openai, requests
+    - Create setup.py for package installation
+    - Write agent README.md with development guide
+    - Add unit tests for all agent components
+    - _Requirements: 2.4, 2.5_
+  
+  - [x] 21.7 Integration testing and validation
+    - Test end-to-end flow with real beads and MCP instances
+    - Validate all three LLM clients (Claude, Gemini, OpenAI)
+    - Test phase loop with sample tasks from beads
+    - Verify ACE reflection and playbook learning
+    - Validate heartbeat system and status reporting
+    - Test error recovery and graceful shutdown
+    - _Requirements: All agent-related requirements_
+
+
+## Phase 2: Real-Time and Interactive Enhancements
+
+- [x] 22. Implement real-time TUI updates
+  - [x] 22.1 Add WebSocket support to MCP client
+    - Create WebSocket client in internal/mcp/websocket.go
+    - Connect to MCP server WebSocket endpoint
+    - Subscribe to agent status change events
+    - Subscribe to new message events
+    - Implement reconnection logic with exponential backoff
+    - Handle connection health monitoring
+    - _Requirements: 7.7, 9.6, 10.2_
+  
+  - [x] 22.2 Implement event-driven TUI updates
+    - Replace polling ticker with event channels in TUI model
+    - Update model state on WebSocket events instead of polling
+    - Maintain fallback polling for beads (git-based, cannot be real-time)
+    - Add connection status indicator in TUI footer
+    - Optimize rendering to only update changed panes
+    - Reduce CPU usage during idle periods
+    - _Requirements: 10.2, 12.5_
+
+- [ ] 23. Implement interactive TUI features
+  - [ ] 23.1 Add task interaction capabilities
+    - Implement arrow key navigation for task list
+    - Add 'c' key to claim selected task for current user
+    - Add 'v' key to view full task details in modal
+    - Add 'n' key to create new task with input form
+    - Display task detail modal with description, status, assignee
+    - _Requirements: 8.1, 8.2, 8.3, 8.4_
+  
+  - [ ] 23.2 Add agent control capabilities
+    - Implement number key (1-9) selection for agents
+    - Add 'p' key to pause/resume selected agent
+    - Add 'k' key to kill selected agent with confirmation
+    - Add 'r' key to restart selected agent
+    - Add 'l' key to view agent logs in detail view
+    - Show confirmation dialogs for destructive actions
+    - _Requirements: 2.2, 3.2, 7.1, 7.2_
+  
+  - [ ] 23.3 Add log filtering and search
+    - Add '/' key to enter search mode with text input
+    - Implement filter by agent name
+    - Implement filter by message type (lease, beads, error, message)
+    - Add 'e' key to export filtered logs to file
+    - Show active filters in log pane header
+    - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5_
+
+- [ ] 24. Implement comprehensive health monitoring
+  - [ ] 24.1 Add health check system
+    - Ping agents every 30 seconds via heartbeat check
+    - Detect unresponsive agents (no heartbeat for 2 minutes)
+    - Detect crashed agents (process exited unexpectedly)
+    - Detect stuck agents (working on same task for >30 minutes)
+    - Display health alerts in TUI with visual indicators
+    - Log all health issues to ~/.asc/logs/health.log
+    - _Requirements: 7.7, 3.2_
+  
+  - [ ] 24.2 Add automatic recovery system
+    - Restart crashed agents automatically with backoff
+    - Release file leases from stuck agents via MCP
+    - Notify user of recovery actions in TUI log pane
+    - Log all recovery actions with timestamps and reasons
+    - Add configuration option to disable auto-recovery
+    - Track recovery success rate per agent
+    - _Requirements: 3.2, 3.3, 7.6_
+
+- [ ] 25. Enhance configuration system
+  - [ ] 25.1 Add configuration validation and suggestions
+    - Validate agent command exists in PATH before starting
+    - Validate model is supported (claude, gemini, openai)
+    - Validate phases are valid (planning, implementation, testing, etc.)
+    - Warn about duplicate agent names in configuration
+    - Suggest fixes for common configuration errors
+    - _Requirements: 4.1, 4.2, 11.1, 11.2_
+  
+  - [ ] 25.2 Add configuration templates
+    - Create template system for common agent setups
+    - Add "asc init --template=solo" for single agent setup
+    - Add "asc init --template=team" for planner, coder, tester setup
+    - Add "asc init --template=swarm" for multiple agents per phase
+    - Allow users to save custom templates
+    - _Requirements: 1.1, 1.6, 11.1, 11.2_
+  
+  - [ ] 25.3 Add configuration hot-reload
+    - Watch asc.toml for file changes using fsnotify
+    - Reload configuration without full restart
+    - Start new agents defined in updated config
+    - Stop agents removed from config
+    - Update existing agent configurations (model, phases)
+    - Display reload notifications in TUI
+    - _Requirements: 2.1, 2.2, 11.1, 11.2_
+
+- [ ] 26. Enhance logging and debugging
+  - [ ] 26.1 Add structured logging
+    - Use JSON format for machine-parseable logs
+    - Include context fields: agent, task, phase, timestamp
+    - Add correlation IDs for tracing requests across components
+    - Support per-agent log levels (DEBUG, INFO, WARN, ERROR)
+    - _Requirements: All commands_
+  
+  - [ ] 26.2 Add debug mode
+    - Add "asc up --debug" flag for verbose output
+    - Show LLM prompts and responses in debug logs
+    - Show file lease operations and conflicts
+    - Show beads database queries and git operations
+    - Display debug info in TUI when enabled
+    - _Requirements: All commands_
+  
+  - [ ] 26.3 Add log aggregation and analysis
+    - Collect logs from all agents into unified view
+    - Display aggregated logs in TUI log pane
+    - Support log export to file with filtering
+    - Add log rotation (max 10MB per file, keep 5 files)
+    - Implement log cleanup for old files
+    - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6_

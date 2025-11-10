@@ -270,6 +270,14 @@ func (c *DefaultChecker) RunAll() []CheckResult {
 	}
 	results = append(results, dockerResult)
 
+	// Check age for secrets management
+	ageResult := c.CheckBinary("age")
+	if ageResult.Status == CheckFail {
+		ageResult.Status = CheckWarn
+		ageResult.Message = "age not found (recommended for secrets management)"
+	}
+	results = append(results, ageResult)
+
 	// Check configuration file
 	results = append(results, c.CheckConfig())
 
