@@ -1,0 +1,11 @@
+[core]
+beads_db_path = "./project-repo"
+
+[services.mcp_agent_mail]
+start_command = "python -m mcp_agent_mail.server"
+url = "http://localhost:8765"
+
+[agent.main-planner]
+command = "python agent_adapter.py"
+model = "gemini"
+phases = ["planning", "design"]

@@ -1,0 +1,677 @@
+package tui
+
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
+
+	"github.com/charmbracelet/bubbles/textinput"
+	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/yourusername/asc/internal/check"
+)
+
+// wizardStep represents the current step in the wizard
+type wizardStep int
+
+const (
+	stepWelcome wizardStep = iota
+	stepChecking
+	stepCheckResults
+	stepInstallPrompt
+	stepBackupPrompt
+	stepAPIKeys
+	stepGenerating
+	stepValidating
+	stepComplete
+)
+
+// Wizard manages the interactive setup process
+type Wizard struct {
+	checker      check.Checker
+	checkResults []check.CheckResult
+}
+
+// wizardModel is the bubbletea model for the wizard
+type wizardModel struct {
+	step         wizardStep
+	checker      check.Checker
+	checkResults []check.CheckResult
+	width        int
+	height       int
+	
+	// API key inputs
+	claudeInput  textinput.Model
+	openaiInput  textinput.Model
+	googleInput  textinput.Model
+	activeInput  int
+	apiKeys      map[string]string
+	
+	// State flags
+	needsInstall bool
+	needsBackup  bool
+	confirmed    bool
+	err          error
+}
+
+// NewWizard creates a new setup wizard
+func NewWizard() *Wizard {
+	return &Wizard{
+		checker: check.NewChecker("asc.toml", ".env"),
+	}
+}
+
+// Run starts the wizard
+func (w *Wizard) Run() error {
+	// Initialize the model
+	m := w.initialModel()
+	
+	// Create the program
+	p := tea.NewProgram(m, tea.WithAltScreen())
+	
+	// Run the program
+	finalModel, err := p.Run()
+	if err != nil {
+		return err
+	}
+	
+	// Check for errors in final model
+	if fm, ok := finalModel.(wizardModel); ok {
+		return fm.err
+	}
+	
+	return nil
+}
+
+func (w *Wizard) initialModel() wizardModel {
+	// Initialize API key inputs
+	claudeInput := textinput.New()
+	claudeInput.Placeholder = "sk-ant-..."
+	claudeInput.Focus()
+	claudeInput.CharLimit = 200
+	claudeInput.Width = 50
+	claudeInput.EchoMode = textinput.EchoPassword
+	claudeInput.EchoCharacter = '•'
+	
+	openaiInput := textinput.New()
+	openaiInput.Placeholder = "sk-..."
+	openaiInput.CharLimit = 200
+	openaiInput.Width = 50
+	openaiInput.EchoMode = textinput.EchoPassword
+	openaiInput.EchoCharacter = '•'
+	
+	googleInput := textinput.New()
+	googleInput.Placeholder = "AIza..."
+	googleInput.CharLimit = 200
+	googleInput.Width = 50
+	googleInput.EchoMode = textinput.EchoPassword
+	googleInput.EchoCharacter = '•'
+	
+	return wizardModel{
+		step:        stepWelcome,
+		checker:     w.checker,
+		claudeInput: claudeInput,
+		openaiInput: openaiInput,
+		googleInput: googleInput,
+		activeInput: 0,
+		apiKeys:     make(map[string]string),
+	}
+}
+
+func (m wizardModel) Init() tea.Cmd {
+	return textinput.Blink
+}
+
+func (m wizardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "ctrl+c", "q":
+			if m.step == stepWelcome || m.step == stepComplete {
+				return m, tea.Quit
+			}
+		case "enter":
+			return m.handleEnter()
+		case "tab", "shift+tab":
+			if m.step == stepAPIKeys {
+				return m.handleTab(msg.String() == "shift+tab")
+			}
+		case "y", "Y":
+			if m.step == stepInstallPrompt || m.step == stepBackupPrompt {
+				m.confirmed = true
+				return m.handleEnter()
+			}
+		case "n", "N":
+			if m.step == stepInstallPrompt || m.step == stepBackupPrompt {
+				m.confirmed = false
+				return m.handleEnter()
+			}
+		}
+		
+		// Handle text input
+		if m.step == stepAPIKeys {
+			return m.updateInputs(msg)
+		}
+		
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
+		
+	case checkCompleteMsg:
+		m.checkResults = msg.results
+		m.step = stepCheckResults
+		return m, nil
+		
+	case generateCompleteMsg:
+		if msg.err != nil {
+			m.err = msg.err
+			return m, tea.Quit
+		}
+		m.step = stepValidating
+		return m, runValidation()
+		
+	case validateCompleteMsg:
+		if msg.err != nil {
+			m.err = msg.err
+		}
+		m.step = stepComplete
+		return m, nil
+	}
+	
+	return m, nil
+}
+
+func (m wizardModel) handleEnter() (tea.Model, tea.Cmd) {
+	switch m.step {
+	case stepWelcome:
+		m.step = stepChecking
+		return m, runChecks(m.checker)
+		
+	case stepCheckResults:
+		// Check if we need to install anything
+		hasFailures := check.HasFailures(m.checkResults)
+		if hasFailures {
+			m.needsInstall = true
+			m.step = stepInstallPrompt
+		} else {
+			// Check if config files exist
+			m.needsBackup = fileExists("asc.toml") || fileExists(".env")
+			if m.needsBackup {
+				m.step = stepBackupPrompt
+			} else {
+				m.step = stepAPIKeys
+				m.claudeInput.Focus()
+			}
+		}
+		return m, nil
+		
+	case stepInstallPrompt:
+		if m.confirmed {
+			// User wants to install - show message and exit
+			fmt.Println("\nPlease install the missing dependencies and run 'asc init' again.")
+			return m, tea.Quit
+		}
+		// User doesn't want to install - check for backup
+		m.needsBackup = fileExists("asc.toml") || fileExists(".env")
+		if m.needsBackup {
+			m.step = stepBackupPrompt
+		} else {
+			m.step = stepAPIKeys
+			m.claudeInput.Focus()
+		}
+		return m, nil
+		
+	case stepBackupPrompt:
+		if m.confirmed {
+			// Backup existing files
+			if err := backupConfigFiles(); err != nil {
+				m.err = fmt.Errorf("failed to backup files: %w", err)
+				return m, tea.Quit
+			}
+		}
+		m.step = stepAPIKeys
+		m.claudeInput.Focus()
+		return m, nil
+		
+	case stepAPIKeys:
+		// Validate and save API keys
+		m.apiKeys["CLAUDE_API_KEY"] = m.claudeInput.Value()
+		m.apiKeys["OPENAI_API_KEY"] = m.openaiInput.Value()
+		m.apiKeys["GOOGLE_API_KEY"] = m.googleInput.Value()
+		
+		// Basic validation
+		if !validateAPIKey("CLAUDE_API_KEY", m.apiKeys["CLAUDE_API_KEY"]) ||
+			!validateAPIKey("OPENAI_API_KEY", m.apiKeys["OPENAI_API_KEY"]) ||
+			!validateAPIKey("GOOGLE_API_KEY", m.apiKeys["GOOGLE_API_KEY"]) {
+			// Stay on this step if validation fails
+			return m, nil
+		}
+		
+		m.step = stepGenerating
+		return m, generateConfigFiles(m.apiKeys)
+	}
+	
+	return m, nil
+}
+
+func (m wizardModel) handleTab(reverse bool) (tea.Model, tea.Cmd) {
+	inputs := []*textinput.Model{&m.claudeInput, &m.openaiInput, &m.googleInput}
+	
+	if reverse {
+		m.activeInput--
+		if m.activeInput < 0 {
+			m.activeInput = len(inputs) - 1
+		}
+	} else {
+		m.activeInput++
+		if m.activeInput >= len(inputs) {
+			m.activeInput = 0
+		}
+	}
+	
+	// Update focus
+	for i, input := range inputs {
+		if i == m.activeInput {
+			input.Focus()
+		} else {
+			input.Blur()
+		}
+	}
+	
+	return m, nil
+}
+
+func (m wizardModel) updateInputs(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+	
+	switch m.activeInput {
+	case 0:
+		m.claudeInput, cmd = m.claudeInput.Update(msg)
+	case 1:
+		m.openaiInput, cmd = m.openaiInput.Update(msg)
+	case 2:
+		m.googleInput, cmd = m.googleInput.Update(msg)
+	}
+	
+	return m, cmd
+}
+
+func (m wizardModel) View() string {
+	switch m.step {
+	case stepWelcome:
+		return m.viewWelcome()
+	case stepChecking:
+		return m.viewChecking()
+	case stepCheckResults:
+		return m.viewCheckResults()
+	case stepInstallPrompt:
+		return m.viewInstallPrompt()
+	case stepBackupPrompt:
+		return m.viewBackupPrompt()
+	case stepAPIKeys:
+		return m.viewAPIKeys()
+	case stepGenerating:
+		return m.viewGenerating()
+	case stepValidating:
+		return m.viewValidating()
+	case stepComplete:
+		return m.viewComplete()
+	}
+	return ""
+}
+
+func (m wizardModel) viewWelcome() string {
+	titleStyle := lipgloss.NewStyle().
+		Bold(true).
+		Foreground(lipgloss.Color("12")).
+		MarginTop(2).
+		MarginBottom(1)
+	
+	textStyle := lipgloss.NewStyle().
+		MarginBottom(1)
+	
+	promptStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("10")).
+		Bold(true).
+		MarginTop(2)
+	
+	var s strings.Builder
+	s.WriteString(titleStyle.Render("🚀 Agent Stack Controller Setup"))
+	s.WriteString("\n\n")
+	s.WriteString(textStyle.Render("Welcome to the asc initialization wizard!"))
+	s.WriteString("\n")
+	s.WriteString(textStyle.Render("This wizard will guide you through:"))
+	s.WriteString("\n\n")
+	s.WriteString("  • Checking for required dependencies\n")
+	s.WriteString("  • Configuring API keys\n")
+	s.WriteString("  • Generating default configuration files\n")
+	s.WriteString("  • Validating your setup\n")
+	s.WriteString("\n")
+	s.WriteString(promptStyle.Render("Press Enter to begin, or 'q' to quit"))
+	
+	return s.String()
+}
+
+func (m wizardModel) viewChecking() string {
+	spinnerStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("12")).
+		MarginTop(2)
+	
+	return spinnerStyle.Render("⟳ Running dependency checks...")
+}
+
+func (m wizardModel) viewCheckResults() string {
+	titleStyle := lipgloss.NewStyle().
+		Bold(true).
+		MarginTop(2).
+		MarginBottom(1)
+	
+	promptStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("10")).
+		Bold(true).
+		MarginTop(2)
+	
+	var s strings.Builder
+	s.WriteString(titleStyle.Render("Dependency Check Results"))
+	s.WriteString("\n\n")
+	s.WriteString(check.FormatResults(m.checkResults))
+	s.WriteString("\n")
+	s.WriteString(promptStyle.Render("Press Enter to continue"))
+	
+	return s.String()
+}
+
+func (m wizardModel) viewInstallPrompt() string {
+	promptStyle := lipgloss.NewStyle().
+		MarginTop(2).
+		MarginBottom(1)
+	
+	questionStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("11")).
+		Bold(true)
+	
+	var s strings.Builder
+	s.WriteString(promptStyle.Render("Some dependencies are missing."))
+	s.WriteString("\n\n")
+	s.WriteString("Please install the missing components before continuing.\n")
+	s.WriteString("You can run 'asc init' again after installation.\n")
+	s.WriteString("\n")
+	s.WriteString(questionStyle.Render("Do you want to exit and install dependencies? (y/n)"))
+	
+	return s.String()
+}
+
+func (m wizardModel) viewBackupPrompt() string {
+	promptStyle := lipgloss.NewStyle().
+		MarginTop(2).
+		MarginBottom(1)
+	
+	questionStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("11")).
+		Bold(true)
+	
+	var s strings.Builder
+	s.WriteString(promptStyle.Render("Existing configuration files detected."))
+	s.WriteString("\n\n")
+	s.WriteString("The following files will be backed up to ~/.asc_backup:\n")
+	if fileExists("asc.toml") {
+		s.WriteString("  • asc.toml\n")
+	}
+	if fileExists(".env") {
+		s.WriteString("  • .env\n")
+	}
+	s.WriteString("\n")
+	s.WriteString(questionStyle.Render("Create backup and continue? (y/n)"))
+	
+	return s.String()
+}
+
+func (m wizardModel) viewAPIKeys() string {
+	titleStyle := lipgloss.NewStyle().
+		Bold(true).
+		MarginTop(2).
+		MarginBottom(1)
+	
+	labelStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("12")).
+		Bold(true)
+	
+	helpStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("240")).
+		MarginTop(2)
+	
+	var s strings.Builder
+	s.WriteString(titleStyle.Render("API Key Configuration"))
+	s.WriteString("\n\n")
+	s.WriteString("Please enter your API keys (input is masked):\n\n")
+	
+	s.WriteString(labelStyle.Render("Claude API Key:"))
+	s.WriteString("\n")
+	s.WriteString(m.claudeInput.View())
+	s.WriteString("\n\n")
+	
+	s.WriteString(labelStyle.Render("OpenAI API Key:"))
+	s.WriteString("\n")
+	s.WriteString(m.openaiInput.View())
+	s.WriteString("\n\n")
+	
+	s.WriteString(labelStyle.Render("Google API Key:"))
+	s.WriteString("\n")
+	s.WriteString(m.googleInput.View())
+	s.WriteString("\n")
+	
+	s.WriteString(helpStyle.Render("Tab: Next field | Shift+Tab: Previous field | Enter: Continue"))
+	
+	return s.String()
+}
+
+func (m wizardModel) viewGenerating() string {
+	spinnerStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("12")).
+		MarginTop(2)
+	
+	return spinnerStyle.Render("⟳ Generating configuration files...")
+}
+
+func (m wizardModel) viewValidating() string {
+	spinnerStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("12")).
+		MarginTop(2)
+	
+	return spinnerStyle.Render("⟳ Validating setup...")
+}
+
+func (m wizardModel) viewComplete() string {
+	successStyle := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("10")).
+		Bold(true).
+		MarginTop(2).
+		MarginBottom(1)
+	
+	textStyle := lipgloss.NewStyle().
+		MarginBottom(1)
+	
+	var s strings.Builder
+	
+	if m.err != nil {
+		errorStyle := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("9")).
+			Bold(true)
+		
+		s.WriteString(errorStyle.Render("✗ Setup Failed"))
+		s.WriteString("\n\n")
+		s.WriteString(fmt.Sprintf("Error: %v\n", m.err))
+		s.WriteString("\n")
+		s.WriteString("Please check the error and try again.\n")
+	} else {
+		s.WriteString(successStyle.Render("✓ Setup Complete!"))
+		s.WriteString("\n\n")
+		s.WriteString(textStyle.Render("Your agent stack is ready to use."))
+		s.WriteString("\n\n")
+		s.WriteString("Next steps:\n")
+		s.WriteString("  • Run 'asc up' to start your agent colony\n")
+		s.WriteString("  • Edit asc.toml to customize agent configurations\n")
+		s.WriteString("  • Run 'asc check' to verify your setup anytime\n")
+	}
+	
+	s.WriteString("\n")
+	s.WriteString("Press 'q' to exit")
+	
+	return s.String()
+}
+
+// Messages for async operations
+type checkCompleteMsg struct {
+	results []check.CheckResult
+}
+
+type generateCompleteMsg struct {
+	err error
+}
+
+type validateCompleteMsg struct {
+	err error
+}
+
+// Commands for async operations
+func runChecks(checker check.Checker) tea.Cmd {
+	return func() tea.Msg {
+		results := checker.RunAll()
+		return checkCompleteMsg{results: results}
+	}
+}
+
+func generateConfigFiles(apiKeys map[string]string) tea.Cmd {
+	return func() tea.Msg {
+		// Generate asc.toml
+		if err := generateDefaultConfig(); err != nil {
+			return generateCompleteMsg{err: err}
+		}
+		
+		// Generate .env
+		if err := generateEnvFile(apiKeys); err != nil {
+			return generateCompleteMsg{err: err}
+		}
+		
+		return generateCompleteMsg{err: nil}
+	}
+}
+
+func runValidation() tea.Cmd {
+	return func() tea.Msg {
+		// Run basic validation checks
+		checker := check.NewChecker("asc.toml", ".env")
+		results := checker.RunAll()
+		
+		// Check if validation passed
+		if check.HasFailures(results) {
+			return validateCompleteMsg{err: fmt.Errorf("validation failed: some checks did not pass")}
+		}
+		
+		return validateCompleteMsg{err: nil}
+	}
+}
+
+// Helper functions
+func fileExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
+}
+
+func backupConfigFiles() error {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+	
+	backupDir := filepath.Join(home, ".asc_backup")
+	if err := os.MkdirAll(backupDir, 0755); err != nil {
+		return err
+	}
+	
+	timestamp := time.Now().Format("20060102_150405")
+	
+	// Backup asc.toml
+	if fileExists("asc.toml") {
+		backupPath := filepath.Join(backupDir, fmt.Sprintf("asc.toml.%s", timestamp))
+		if err := copyFile("asc.toml", backupPath); err != nil {
+			return err
+		}
+	}
+	
+	// Backup .env
+	if fileExists(".env") {
+		backupPath := filepath.Join(backupDir, fmt.Sprintf(".env.%s", timestamp))
+		if err := copyFile(".env", backupPath); err != nil {
+			return err
+		}
+	}
+	
+	return nil
+}
+
+func copyFile(src, dst string) error {
+	data, err := os.ReadFile(src)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(dst, data, 0644)
+}
+
+func validateAPIKey(keyName, value string) bool {
+	if len(value) == 0 {
+		return false
+	}
+	
+	// Basic format validation
+	switch keyName {
+	case "CLAUDE_API_KEY":
+		return strings.HasPrefix(value, "sk-ant-")
+	case "OPENAI_API_KEY":
+		return strings.HasPrefix(value, "sk-")
+	case "GOOGLE_API_KEY":
+		return strings.HasPrefix(value, "AIza")
+	}
+	
+	return true
+}
+
+func generateDefaultConfig() error {
+	config := `[core]
+beads_db_path = "./project-repo"
+
+[services.mcp_agent_mail]
+start_command = "python -m mcp_agent_mail.server"
+url = "http://localhost:8765"
+
+[agent.main-planner]
+command = "python agent_adapter.py"
+model = "gemini"
+phases = ["planning", "design"]
+
+[agent.claude-implementer]
+command = "python agent_adapter.py"
+model = "claude"
+phases = ["implementation"]
+
+[agent.openai-tester]
+command = "python agent_adapter.py"
+model = "openai"
+phases = ["testing", "refactor"]
+`
+	
+	return os.WriteFile("asc.toml", []byte(config), 0644)
+}
+
+func generateEnvFile(apiKeys map[string]string) error {
+	var content strings.Builder
+	
+	for key, value := range apiKeys {
+		content.WriteString(fmt.Sprintf("%s=%s\n", key, value))
+	}
+	
+	// Set restrictive permissions for .env file
+	return os.WriteFile(".env", []byte(content.String()), 0600)
+}
