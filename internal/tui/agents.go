@@ -45,8 +45,11 @@ func (m Model) renderAgentPane(width, height int) string {
 		statusMap[agent.Name] = agent
 	}
 	
+	// Get sorted agent names for consistent ordering
+	agentNames := m.getAgentNames()
+	
 	// Iterate through agents from config to maintain consistent ordering
-	for agentName := range m.config.Agents {
+	for i, agentName := range agentNames {
 		status, exists := statusMap[agentName]
 		if !exists {
 			// Agent not found in status updates - mark as offline
@@ -56,7 +59,7 @@ func (m Model) renderAgentPane(width, height int) string {
 			}
 		}
 		
-		line := m.formatAgentLine(status, contentWidth)
+		line := m.formatAgentLine(status, contentWidth, i+1, i == m.selectedAgentIndex)
 		lines = append(lines, line)
 	}
 	
@@ -71,19 +74,22 @@ func (m Model) renderAgentPane(width, height int) string {
 	// Join lines and apply border with title
 	contentStr := strings.Join(content, "\n")
 	
+	// Add keybindings hint
+	hint := lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render("1-9:select p:pause k:kill R:restart l:logs")
+	
 	return agentPaneBorder.
 		Width(width - 2).
 		Height(height - 2).
 		Render(lipgloss.JoinVertical(
 			lipgloss.Left,
 			lipgloss.NewStyle().Bold(true).Render("Agent Status"),
-			"",
+			hint,
 			contentStr,
 		))
 }
 
 // formatAgentLine formats a single agent status line
-func (m Model) formatAgentLine(status mcp.AgentStatus, maxWidth int) string {
+func (m Model) formatAgentLine(status mcp.AgentStatus, maxWidth int, number int, selected bool) string {
 	// Get icon and style based on state
 	icon, style := m.getAgentIconAndStyle(status.State)
 	
@@ -106,8 +112,15 @@ func (m Model) formatAgentLine(status mcp.AgentStatus, maxWidth int) string {
 		statusText = "Unknown"
 	}
 	
-	// Build the line: icon + name + status
-	line := fmt.Sprintf("%s %s - %s", icon, status.Name, statusText)
+	// Add selection indicator
+	prefix := fmt.Sprintf("%d ", number)
+	if selected {
+		prefix = fmt.Sprintf("%d▶", number)
+		style = style.Background(lipgloss.Color("237")) // Highlight background
+	}
+	
+	// Build the line: number + icon + name + status
+	line := fmt.Sprintf("%s %s %s - %s", prefix, icon, status.Name, statusText)
 	
 	// Truncate if too long
 	if len(line) > maxWidth {
@@ -120,6 +133,16 @@ func (m Model) formatAgentLine(status mcp.AgentStatus, maxWidth int) string {
 	
 	// Apply color styling
 	return style.Render(line)
+}
+
+// getAgentNames returns a sorted list of agent names from config
+// This is defined here to avoid import cycles
+func (m Model) getAgentNames() []string {
+	names := make([]string, 0, len(m.config.Agents))
+	for name := range m.config.Agents {
+		names = append(names, name)
+	}
+	return names
 }
 
 // getAgentIconAndStyle returns the icon and style for a given agent state

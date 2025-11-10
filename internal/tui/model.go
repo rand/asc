@@ -34,6 +34,23 @@ type Model struct {
 	wsConnected   bool // WebSocket connection status
 	beadsConnected bool // Beads connection status
 
+	// Task interaction state
+	selectedTaskIndex int    // Index of selected task in filtered list
+	showTaskModal     bool   // Whether to show task detail modal
+	showCreateModal   bool   // Whether to show create task modal
+	createTaskInput   string // Input for new task title
+
+	// Agent interaction state
+	selectedAgentIndex int  // Index of selected agent (1-9)
+	showConfirmModal   bool // Whether to show confirmation dialog
+	confirmAction      string // Action to confirm (kill, restart)
+
+	// Log filtering state
+	searchMode      bool   // Whether in search mode
+	searchInput     string // Search input text
+	logFilterAgent  string // Filter logs by agent name
+	logFilterType   string // Filter logs by message type
+
 	// Error state
 	err error
 }

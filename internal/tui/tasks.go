@@ -38,9 +38,9 @@ func (m Model) renderTaskPane(width, height int) string {
 	// Filter tasks by status (open, in_progress)
 	filteredTasks := m.filterTasksByStatus([]string{"open", "in_progress"})
 	
-	// Build task lines
-	for _, task := range filteredTasks {
-		line := m.formatTaskLine(task, contentWidth)
+	// Build task lines with selection highlighting
+	for i, task := range filteredTasks {
+		line := m.formatTaskLine(task, contentWidth, i == m.selectedTaskIndex)
 		lines = append(lines, line)
 	}
 	
@@ -55,41 +55,33 @@ func (m Model) renderTaskPane(width, height int) string {
 	// Join lines and apply border with title
 	contentStr := strings.Join(content, "\n")
 	
+	// Add keybindings hint
+	hint := lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render("↑↓:select c:claim v:view n:new")
+	
 	return taskPaneBorder.
 		Width(width - 2).
 		Height(height - 2).
 		Render(lipgloss.JoinVertical(
 			lipgloss.Left,
 			lipgloss.NewStyle().Bold(true).Render("Task Stream"),
-			"",
+			hint,
 			contentStr,
 		))
 }
 
-// filterTasksByStatus filters tasks by the given statuses
-func (m Model) filterTasksByStatus(statuses []string) []beads.Task {
-	statusMap := make(map[string]bool)
-	for _, status := range statuses {
-		statusMap[status] = true
-	}
-	
-	var filtered []beads.Task
-	for _, task := range m.tasks {
-		if statusMap[task.Status] {
-			filtered = append(filtered, task)
-		}
-	}
-	
-	return filtered
-}
-
 // formatTaskLine formats a single task line
-func (m Model) formatTaskLine(task beads.Task, maxWidth int) string {
+func (m Model) formatTaskLine(task beads.Task, maxWidth int, selected bool) string {
 	// Get icon and style based on status
 	icon, style := m.getTaskIconAndStyle(task.Status)
 	
 	// Build the line: icon + ID + title
-	line := fmt.Sprintf("%s #%s %s", icon, task.ID, task.Title)
+	prefix := "  "
+	if selected {
+		prefix = "▶ "
+		style = style.Background(lipgloss.Color("237")) // Highlight background
+	}
+	
+	line := fmt.Sprintf("%s%s #%s %s", prefix, icon, task.ID, task.Title)
 	
 	// Truncate if too long
 	if len(line) > maxWidth {
@@ -114,4 +106,21 @@ func (m Model) getTaskIconAndStyle(status string) (string, lipgloss.Style) {
 	default:
 		return iconOpen, styleOpen
 	}
+}
+
+// filterTasksByStatus filters tasks by the given statuses (moved from inline to reusable)
+func (m Model) filterTasksByStatus(statuses []string) []beads.Task {
+	statusMap := make(map[string]bool)
+	for _, status := range statuses {
+		statusMap[status] = true
+	}
+	
+	var filtered []beads.Task
+	for _, task := range m.tasks {
+		if statusMap[task.Status] {
+			filtered = append(filtered, task)
+		}
+	}
+	
+	return filtered
 }

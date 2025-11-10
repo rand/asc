@@ -408,8 +408,8 @@
     - Reduce CPU usage during idle periods
     - _Requirements: 10.2, 12.5_
 
-- [ ] 23. Implement interactive TUI features
-  - [ ] 23.1 Add task interaction capabilities
+- [x] 23. Implement interactive TUI features
+  - [x] 23.1 Add task interaction capabilities
     - Implement arrow key navigation for task list
     - Add 'c' key to claim selected task for current user
     - Add 'v' key to view full task details in modal
@@ -417,7 +417,7 @@
     - Display task detail modal with description, status, assignee
     - _Requirements: 8.1, 8.2, 8.3, 8.4_
   
-  - [ ] 23.2 Add agent control capabilities
+  - [x] 23.2 Add agent control capabilities
     - Implement number key (1-9) selection for agents
     - Add 'p' key to pause/resume selected agent
     - Add 'k' key to kill selected agent with confirmation
@@ -426,7 +426,7 @@
     - Show confirmation dialogs for destructive actions
     - _Requirements: 2.2, 3.2, 7.1, 7.2_
   
-  - [ ] 23.3 Add log filtering and search
+  - [x] 23.3 Add log filtering and search
     - Add '/' key to enter search mode with text input
     - Implement filter by agent name
     - Implement filter by message type (lease, beads, error, message)

@@ -34,8 +34,13 @@ func (m Model) renderLogPane(width, height int) string {
 
 	var lines []string
 	
-	// Get the last N messages (up to maxLogMessages)
-	messages := m.getRecentMessages(maxLogMessages)
+	// Get filtered messages
+	messages := m.getFilteredMessages()
+	
+	// Limit to recent messages
+	if len(messages) > maxLogMessages {
+		messages = messages[len(messages)-maxLogMessages:]
+	}
 	
 	// Build message lines
 	for _, msg := range messages {
@@ -61,13 +66,32 @@ func (m Model) renderLogPane(width, height int) string {
 	// Join lines and apply border with title
 	contentStr := strings.Join(lines, "\n")
 	
+	// Build title with active filters
+	title := "MCP Interaction Log"
+	var filterParts []string
+	if m.searchInput != "" {
+		filterParts = append(filterParts, fmt.Sprintf("search:%s", m.searchInput))
+	}
+	if m.logFilterAgent != "" {
+		filterParts = append(filterParts, fmt.Sprintf("agent:%s", m.logFilterAgent))
+	}
+	if m.logFilterType != "" {
+		filterParts = append(filterParts, fmt.Sprintf("type:%s", m.logFilterType))
+	}
+	if len(filterParts) > 0 {
+		title += " [" + strings.Join(filterParts, " ") + "]"
+	}
+	
+	// Add keybindings hint
+	hint := lipgloss.NewStyle().Foreground(lipgloss.Color("240")).Render("/:search a:agent m:type x:clear e:export")
+	
 	return logPaneBorder.
 		Width(width - 2).
 		Height(height - 2).
 		Render(lipgloss.JoinVertical(
 			lipgloss.Left,
-			lipgloss.NewStyle().Bold(true).Render("MCP Interaction Log"),
-			"",
+			lipgloss.NewStyle().Bold(true).Render(title),
+			hint,
 			contentStr,
 		))
 }

@@ -49,11 +49,46 @@ func (m Model) View() string {
 	)
 	
 	// Compose final view with footer
-	return lipgloss.JoinVertical(
+	baseView := lipgloss.JoinVertical(
 		lipgloss.Left,
 		mainView,
 		footer,
 	)
+	
+	// Overlay modals if active
+	if m.showTaskModal {
+		modal := m.renderTaskDetailModal()
+		return m.overlayModal(baseView, modal)
+	}
+	
+	if m.showCreateModal {
+		modal := m.renderCreateTaskModal()
+		return m.overlayModal(baseView, modal)
+	}
+	
+	if m.showConfirmModal {
+		modal := m.renderConfirmModal()
+		return m.overlayModal(baseView, modal)
+	}
+	
+	if m.searchMode {
+		searchBar := m.renderSearchInput()
+		// Place search bar at bottom, above footer
+		return lipgloss.JoinVertical(
+			lipgloss.Left,
+			mainView,
+			searchBar,
+		)
+	}
+	
+	return baseView
+}
+
+// overlayModal overlays a modal on top of the base view
+func (m Model) overlayModal(baseView, modal string) string {
+	// For simplicity, just return the modal
+	// In a more sophisticated implementation, we could blend the views
+	return modal
 }
 
 // renderFooter renders the footer with keybindings and connection status
