@@ -269,8 +269,8 @@
     - Handle TUI exit and cleanup
     - _Requirements: 2.6, 2.7_
 
-- [ ] 17. Implement CLI command: asc down
-  - [ ] 17.1 Create down command and implement shutdown sequence
+- [x] 17. Implement CLI command: asc down
+  - [x] 17.1 Create down command and implement shutdown sequence
     - Create cmd/down.go with cobra command structure
     - Initialize process manager with ~/.asc/pids and ~/.asc/logs
     - List all managed processes
@@ -280,8 +280,8 @@
     - Print confirmation message: "Agent stack is offline"
     - _Requirements: 3.1, 3.2, 3.3, 3.4_
 
-- [ ] 18. Implement error handling and logging
-  - [ ] 18.1 Create centralized logging system
+- [x] 18. Implement error handling and logging
+  - [x] 18.1 Create centralized logging system
     - Create internal/logger package
     - Set up log file at ~/.asc/logs/asc.log
     - Implement log levels: DEBUG, INFO, WARN, ERROR
@@ -289,7 +289,7 @@
     - Add structured logging with timestamps and context
     - _Requirements: All commands_
   
-  - [ ] 18.2 Implement user-friendly error messages
+  - [x] 18.2 Implement user-friendly error messages
     - Create error formatting utilities
     - Format errors with actionable solutions
     - Display errors appropriately in TUI (in log pane) vs CLI (stderr)
