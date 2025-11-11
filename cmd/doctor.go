@@ -52,7 +52,7 @@ func runDoctor(cmd *cobra.Command, args []string) {
 	if err != nil {
 		logger.Error("Failed to initialize doctor: %v", err)
 		fmt.Fprintf(os.Stderr, "Error: Failed to initialize doctor: %v\n", err)
-		os.Exit(1)
+		osExit(1)
 	}
 	
 	// Run diagnostics
@@ -60,7 +60,7 @@ func runDoctor(cmd *cobra.Command, args []string) {
 	if err != nil {
 		logger.Error("Failed to run diagnostics: %v", err)
 		fmt.Fprintf(os.Stderr, "Error: Failed to run diagnostics: %v\n", err)
-		os.Exit(1)
+		osExit(1)
 	}
 	
 	// Apply fixes if requested
@@ -70,7 +70,7 @@ func runDoctor(cmd *cobra.Command, args []string) {
 		if err != nil {
 			logger.Error("Failed to apply fixes: %v", err)
 			fmt.Fprintf(os.Stderr, "Error: Failed to apply fixes: %v\n", err)
-			os.Exit(1)
+			osExit(1)
 		}
 		report.FixesApplied = fixReport
 	}
@@ -81,7 +81,7 @@ func runDoctor(cmd *cobra.Command, args []string) {
 		if err != nil {
 			logger.Error("Failed to format JSON output: %v", err)
 			fmt.Fprintf(os.Stderr, "Error: Failed to format JSON output: %v\n", err)
-			os.Exit(1)
+			osExit(1)
 		}
 		fmt.Println(output)
 	} else {
@@ -91,7 +91,7 @@ func runDoctor(cmd *cobra.Command, args []string) {
 	
 	// Exit with appropriate code
 	if report.HasCriticalIssues() {
-		os.Exit(1)
+		osExit(1)
 	}
-	os.Exit(0)
+	osExit(0)
 }

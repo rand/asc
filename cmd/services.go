@@ -11,6 +11,9 @@ import (
 	"github.com/yourusername/asc/internal/process"
 )
 
+// osExit is a variable that can be mocked in tests (shared with other cmd files)
+// var osExit = os.Exit is defined in check.go
+
 var servicesCmd = &cobra.Command{
 	Use:   "services",
 	Short: "Manage long-running services",
@@ -65,28 +68,32 @@ func runServicesStart(cmd *cobra.Command, args []string) {
 	cfg, err := config.Load(config.DefaultConfigPath())
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: Failed to load configuration: %v\n", err)
-		os.Exit(1)
+		osExit(1)
+		return
 	}
 
 	// Create process manager
 	pm, err := getProcessManager()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: Failed to create process manager: %v\n", err)
-		os.Exit(1)
+		osExit(1)
+		return
 	}
 
 	// Check if service is already running
 	info, err := pm.GetProcessInfo("mcp_agent_mail")
 	if err == nil && pm.IsRunning(info.PID) {
 		fmt.Printf("mcp_agent_mail is already running (PID %d)\n", info.PID)
-		os.Exit(0)
+		osExit(0)
+		return
 	}
 
 	// Parse the start command
 	cmdParts := strings.Fields(cfg.Services.MCPAgentMail.StartCommand)
 	if len(cmdParts) == 0 {
 		fmt.Fprintf(os.Stderr, "Error: Invalid start command in configuration\n")
-		os.Exit(1)
+		osExit(1)
+		return
 	}
 
 	command := cmdParts[0]
@@ -96,7 +103,8 @@ func runServicesStart(cmd *cobra.Command, args []string) {
 	pid, err := pm.Start("mcp_agent_mail", command, cmdArgs, nil)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: Failed to start mcp_agent_mail: %v\n", err)
-		os.Exit(1)
+		osExit(1)
+		return
 	}
 
 	fmt.Printf("✓ mcp_agent_mail started (PID %d)\n", pid)
@@ -113,14 +121,16 @@ func runServicesStop(cmd *cobra.Command, args []string) {
 	pm, err := getProcessManager()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: Failed to create process manager: %v\n", err)
-		os.Exit(1)
+		osExit(1)
+		return
 	}
 
 	// Get process info
 	info, err := pm.GetProcessInfo("mcp_agent_mail")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: mcp_agent_mail is not running\n")
-		os.Exit(1)
+		osExit(1)
+		return
 	}
 
 	// Check if process is actually running
@@ -130,14 +140,16 @@ func runServicesStop(cmd *cobra.Command, args []string) {
 		homeDir, _ := os.UserHomeDir()
 		pidFile := filepath.Join(homeDir, ".asc", "pids", "mcp_agent_mail.json")
 		os.Remove(pidFile)
-		os.Exit(1)
+		osExit(1)
+		return
 	}
 
 	// Stop the service
 	fmt.Printf("Stopping mcp_agent_mail (PID %d)...\n", info.PID)
 	if err := pm.Stop(info.PID); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: Failed to stop mcp_agent_mail: %v\n", err)
-		os.Exit(1)
+		osExit(1)
+		return
 	}
 
 	// Clean up PID file
@@ -154,14 +166,16 @@ func runServicesStatus(cmd *cobra.Command, args []string) {
 	pm, err := getProcessManager()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: Failed to create process manager: %v\n", err)
-		os.Exit(1)
+		osExit(1)
+		return
 	}
 
 	// Get process info
 	info, err := pm.GetProcessInfo("mcp_agent_mail")
 	if err != nil {
 		fmt.Println("mcp_agent_mail: ○ stopped")
-		os.Exit(0)
+		osExit(0)
+		return
 	}
 
 	// Check if process is running

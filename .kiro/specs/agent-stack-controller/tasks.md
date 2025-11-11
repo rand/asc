@@ -1098,7 +1098,7 @@
       - Target: 60%+ coverage for view.go, agents.go, tasks.go, logs.go
       - _Requirements: All_
     
-    - [ ] 30.1.5 Add TUI interaction tests
+    - [x] 30.1.5 Add TUI interaction tests
       - Test Update method with different message types
       - Test keyboard event handling (q, r, t, arrow keys, etc.)
       - Test modal interactions (open, close, navigation)
@@ -1109,7 +1109,7 @@
       - Target: 60%+ coverage for update.go, modals.go
       - _Requirements: All_
     
-    - [ ] 30.1.6 Add theme and styling tests
+    - [x] 30.1.6 Add theme and styling tests
       - Test theme initialization (NewTheme)
       - Test theme application
       - Test color calculations and gradients
@@ -1118,9 +1118,9 @@
       - Target: 40%+ coverage for theme.go, animations.go, performance.go
       - _Requirements: All_
   
-  - [ ] 30.2 Add CLI command integration tests (HIGH - 1 week)
+  - [x] 30.2 Add CLI command integration tests (HIGH - 1 week)
     - Current coverage: 0% | Target: 50%+ | Gap: 100% untested
-    - [ ] 30.2.1 Set up CLI integration test framework
+    - [x] 30.2.1 Set up CLI integration test framework
       - Create cmd/cmd_test.go with shared test utilities
       - Create test environment setup/teardown helpers
       - Mock file system operations using temp directories
@@ -1129,7 +1129,7 @@
       - Create helper functions for command testing
       - _Requirements: All_
     
-    - [ ] 30.2.2 Add check command tests
+    - [x] 30.2.2 Add check command tests
       - Test asc check workflow with valid environment
       - Test asc check with missing dependencies
       - Test asc check with invalid config
@@ -1138,7 +1138,7 @@
       - Target: 50%+ coverage for cmd/check.go
       - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6_
     
-    - [ ] 30.2.3 Add services command tests
+    - [x] 30.2.3 Add services command tests
       - Test asc services start workflow
       - Test asc services stop workflow
       - Test asc services status workflow
@@ -1147,7 +1147,7 @@
       - Target: 50%+ coverage for cmd/services.go
       - _Requirements: 6.1, 6.2, 6.3, 6.4_
     
-    - [ ] 30.2.4 Add test command tests
+    - [x] 30.2.4 Add test command tests
       - Test asc test workflow with mock beads and MCP
       - Test E2E test execution
       - Test result reporting
@@ -1156,7 +1156,7 @@
       - Target: 50%+ coverage for cmd/test.go
       - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6_
     
-    - [ ] 30.2.5 Add doctor command tests
+    - [x] 30.2.5 Add doctor command tests
       - Test asc doctor workflow
       - Test diagnostics execution
       - Test report generation
@@ -1164,7 +1164,7 @@
       - Target: 50%+ coverage for cmd/doctor.go
       - _Requirements: All_
     
-    - [ ] 30.2.6 Add cleanup command tests
+    - [-] 30.2.6 Add cleanup command tests
       - Test asc cleanup workflow
       - Test log cleanup
       - Test PID cleanup

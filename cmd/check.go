@@ -8,6 +8,9 @@ import (
 	"github.com/yourusername/asc/internal/check"
 )
 
+// osExit is a variable that can be mocked in tests
+var osExit = os.Exit
+
 var checkCmd = &cobra.Command{
 	Use:   "check",
 	Short: "Verify environment setup and dependencies",
@@ -38,7 +41,7 @@ func runCheck(cmd *cobra.Command, args []string) {
 
 	// Exit with appropriate status code
 	if check.HasFailures(results) {
-		os.Exit(1)
+		osExit(1)
 	}
-	os.Exit(0)
+	osExit(0)
 }
