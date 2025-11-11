@@ -2,7 +2,6 @@ package process
 
 import (
 	"context"
-	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -286,7 +285,7 @@ func TestTimeout_ErrorPaths(t *testing.T) {
 
 	// Start a process that ignores SIGTERM
 	name := "stubborn-process"
-	_, err := mgr.Start(name, "sh", []string{"-c", "trap '' TERM; sleep 100"}, nil)
+	pid, err := mgr.Start(name, "sh", []string{"-c", "trap '' TERM; sleep 100"}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -297,7 +296,7 @@ func TestTimeout_ErrorPaths(t *testing.T) {
 
 	done := make(chan error, 1)
 	go func() {
-		done <- mgr.Stop(name)
+		done <- mgr.Stop(pid)
 	}()
 
 	select {
@@ -307,7 +306,7 @@ func TestTimeout_ErrorPaths(t *testing.T) {
 			t.Logf("Stop returned error (expected): %v", err)
 		}
 		// Verify process is actually stopped
-		if mgr.IsRunning(name) {
+		if mgr.IsRunning(pid) {
 			t.Error("Process should be stopped after timeout")
 		}
 	case <-ctx.Done():
@@ -398,9 +397,9 @@ func TestPanicRecovery(t *testing.T) {
 	}
 
 	// Try operations that might panic
-	mgr.IsRunning("")
-	mgr.Stop("")
-	mgr.GetStatus("")
+	mgr.IsRunning(0)
+	mgr.Stop(0)
+	mgr.GetStatus(0)
 }
 
 // TestConcurrentOperations tests error handling under concurrent access
@@ -415,7 +414,7 @@ func TestConcurrentOperations(t *testing.T) {
 
 	// Start a process
 	name := "concurrent-test"
-	_, err := mgr.Start(name, "sleep", []string{"5"}, nil)
+	pid, err := mgr.Start(name, "sleep", []string{"5"}, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -424,7 +423,7 @@ func TestConcurrentOperations(t *testing.T) {
 	done := make(chan error, 3)
 	for i := 0; i < 3; i++ {
 		go func() {
-			done <- mgr.Stop(name)
+			done <- mgr.Stop(pid)
 		}()
 	}
 
@@ -442,7 +441,7 @@ func TestConcurrentOperations(t *testing.T) {
 	}
 
 	// Process should be stopped
-	if mgr.IsRunning(name) {
+	if mgr.IsRunning(pid) {
 		t.Error("Process should be stopped")
 	}
 }
@@ -476,9 +475,9 @@ func TestInvalidInput(t *testing.T) {
 			},
 		},
 		{
-			name: "stop with special characters",
+			name: "stop with invalid PID",
 			fn: func() error {
-				return mgr.Stop("test/../../../etc/passwd")
+				return mgr.Stop(-1)
 			},
 		},
 	}
@@ -515,10 +514,12 @@ func TestCommandInjection(t *testing.T) {
 	for _, input := range maliciousInputs {
 		t.Run("injection: "+input, func(t *testing.T) {
 			// These should be treated as literal command names, not executed
-			_, err := mgr.Start("test", input, []string{}, nil)
+			pid, err := mgr.Start("test", input, []string{}, nil)
 			if err == nil {
 				t.Error("Expected error for malicious input")
-				mgr.Stop("test")
+				if pid > 0 {
+					mgr.Stop(pid)
+				}
 			}
 			// Verify no actual command execution occurred
 			if _, err := exec.LookPath(input); err == nil {

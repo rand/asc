@@ -1,0 +1,9 @@
+# github.com/yourusername/asc/internal/beads
+# [github.com/yourusername/asc/internal/beads]
+vet: internal/beads/error_handling_test.go:582:6: contains redeclared in this block
+# github.com/yourusername/asc/internal/process
+# [github.com/yourusername/asc/internal/process]
+vet: internal/process/error_handling_test.go:289:9: no new variables on left side of :=
+# github.com/yourusername/asc/internal/mcp
+# [github.com/yourusername/asc/internal/mcp]
+vet: internal/mcp/error_handling_test.go:47:19: undefined: NewClient

@@ -1,0 +1,767 @@
+# github.com/yourusername/asc/internal/beads [github.com/yourusername/asc/internal/beads.test]
+internal/beads/error_handling_test.go:41:19: assignment mismatch: 2 variables but NewClient returns 1 value
+internal/beads/error_handling_test.go:41:29: not enough arguments in call to NewClient
+	have (string)
+	want (string, time.Duration)
+internal/beads/error_handling_test.go:105:19: assignment mismatch: 2 variables but NewClient returns 1 value
+internal/beads/error_handling_test.go:105:29: not enough arguments in call to NewClient
+	have (string)
+	want (string, time.Duration)
+internal/beads/error_handling_test.go:179:19: assignment mismatch: 2 variables but NewClient returns 1 value
+internal/beads/error_handling_test.go:179:29: not enough arguments in call to NewClient
+	have (string)
+	want (string, time.Duration)
+internal/beads/error_handling_test.go:219:17: assignment mismatch: 2 variables but NewClient returns 1 value
+internal/beads/error_handling_test.go:219:27: not enough arguments in call to NewClient
+	have (string)
+	want (string, time.Duration)
+internal/beads/error_handling_test.go:234:36: cannot use "done" (untyped string constant) as *string value in struct literal
+internal/beads/error_handling_test.go:583:6: contains redeclared in this block
+	internal/beads/client_test.go:593:6: other declaration of contains
+internal/beads/error_handling_test.go:234:36: too many errors
+# github.com/yourusername/asc/internal/mcp [github.com/yourusername/asc/internal/mcp.test]
+internal/mcp/error_handling_test.go:47:19: undefined: NewClient
+internal/mcp/error_handling_test.go:128:19: undefined: NewClient
+internal/mcp/error_handling_test.go:217:19: undefined: NewClient
+internal/mcp/error_handling_test.go:284:19: undefined: NewClient
+internal/mcp/error_handling_test.go:312:17: undefined: NewClient
+internal/mcp/error_handling_test.go:351:17: undefined: NewClient
+internal/mcp/error_handling_test.go:385:17: undefined: NewClient
+internal/mcp/error_handling_test.go:415:17: undefined: NewClient
+internal/mcp/error_handling_test.go:475:17: undefined: NewClient
+internal/mcp/error_handling_test.go:506:9: undefined: NewClient
+internal/mcp/error_handling_test.go:506:9: too many errors
+# github.com/yourusername/asc/internal/process [github.com/yourusername/asc/internal/process.test]
+internal/process/error_handling_test.go:289:9: no new variables on left side of :=
+internal/process/error_handling_test.go:300:20: cannot use name (variable of type string) as int value in argument to mgr.Stop
+internal/process/error_handling_test.go:310:20: cannot use name (variable of type string) as int value in argument to mgr.IsRunning
+internal/process/error_handling_test.go:401:16: cannot use "" (untyped string constant) as int value in argument to mgr.IsRunning
+internal/process/error_handling_test.go:402:11: cannot use "" (untyped string constant) as int value in argument to mgr.Stop
+internal/process/error_handling_test.go:403:16: cannot use "" (untyped string constant) as int value in argument to mgr.GetStatus
+internal/process/error_handling_test.go:418:9: no new variables on left side of :=
+internal/process/error_handling_test.go:427:21: cannot use name (variable of type string) as int value in argument to mgr.Stop
+internal/process/error_handling_test.go:445:19: cannot use name (variable of type string) as int value in argument to mgr.IsRunning
+internal/process/error_handling_test.go:481:21: cannot use "test/../../../etc/passwd" (untyped string constant) as int value in argument to mgr.Stop
+internal/process/error_handling_test.go:481:21: too many errors
+	github.com/yourusername/asc		coverage: 0.0% of statements
+	github.com/yourusername/asc/cmd		coverage: 0.0% of statements
+FAIL	github.com/yourusername/asc/internal/beads [build failed]
+=== RUN   TestCheckBinary
+=== RUN   TestCheckBinary/existing_binary
+=== RUN   TestCheckBinary/non-existent_binary
+--- PASS: TestCheckBinary (0.00s)
+    --- PASS: TestCheckBinary/existing_binary (0.00s)
+    --- PASS: TestCheckBinary/non-existent_binary (0.00s)
+=== RUN   TestCheckFile
+=== RUN   TestCheckFile/existing_file
+=== RUN   TestCheckFile/non-existent_file
+=== RUN   TestCheckFile/directory_instead_of_file
+--- PASS: TestCheckFile (0.00s)
+    --- PASS: TestCheckFile/existing_file (0.00s)
+    --- PASS: TestCheckFile/non-existent_file (0.00s)
+    --- PASS: TestCheckFile/directory_instead_of_file (0.00s)
+=== RUN   TestCheckConfig
+=== RUN   TestCheckConfig/valid_config
+=== RUN   TestCheckConfig/missing_beads_db_path
+=== RUN   TestCheckConfig/invalid_TOML
+--- PASS: TestCheckConfig (0.00s)
+    --- PASS: TestCheckConfig/valid_config (0.00s)
+    --- PASS: TestCheckConfig/missing_beads_db_path (0.00s)
+    --- PASS: TestCheckConfig/invalid_TOML (0.00s)
+=== RUN   TestCheckConfigMissingFile
+--- PASS: TestCheckConfigMissingFile (0.00s)
+=== RUN   TestCheckEnv
+=== RUN   TestCheckEnv/all_keys_present
+=== RUN   TestCheckEnv/missing_keys
+=== RUN   TestCheckEnv/empty_file
+--- PASS: TestCheckEnv (0.00s)
+    --- PASS: TestCheckEnv/all_keys_present (0.00s)
+    --- PASS: TestCheckEnv/missing_keys (0.00s)
+    --- PASS: TestCheckEnv/empty_file (0.00s)
+=== RUN   TestCheckEnvMissingFile
+--- PASS: TestCheckEnvMissingFile (0.00s)
+=== RUN   TestRunAll
+--- PASS: TestRunAll (0.00s)
+=== RUN   TestFormatResults
+--- PASS: TestFormatResults (0.00s)
+=== RUN   TestHasFailures
+=== RUN   TestHasFailures/no_failures
+=== RUN   TestHasFailures/with_failures
+=== RUN   TestHasFailures/only_warnings
+--- PASS: TestHasFailures (0.00s)
+    --- PASS: TestHasFailures/no_failures (0.00s)
+    --- PASS: TestHasFailures/with_failures (0.00s)
+    --- PASS: TestHasFailures/only_warnings (0.00s)
+=== RUN   TestCheckStatus
+=== RUN   TestCheckStatus/pass
+=== RUN   TestCheckStatus/fail
+=== RUN   TestCheckStatus/warn
+--- PASS: TestCheckStatus (0.00s)
+    --- PASS: TestCheckStatus/pass (0.00s)
+    --- PASS: TestCheckStatus/fail (0.00s)
+    --- PASS: TestCheckStatus/warn (0.00s)
+=== RUN   TestCheckResult
+--- PASS: TestCheckResult (0.00s)
+=== RUN   TestCheckBinary_ErrorPaths
+=== RUN   TestCheckBinary_ErrorPaths/nonexistent_binary
+=== RUN   TestCheckBinary_ErrorPaths/empty_binary_name
+=== RUN   TestCheckBinary_ErrorPaths/binary_with_path_traversal
+=== RUN   TestCheckBinary_ErrorPaths/binary_with_special_characters
+--- PASS: TestCheckBinary_ErrorPaths (0.00s)
+    --- PASS: TestCheckBinary_ErrorPaths/nonexistent_binary (0.00s)
+    --- PASS: TestCheckBinary_ErrorPaths/empty_binary_name (0.00s)
+    --- PASS: TestCheckBinary_ErrorPaths/binary_with_path_traversal (0.00s)
+    --- PASS: TestCheckBinary_ErrorPaths/binary_with_special_characters (0.00s)
+=== RUN   TestCheckFile_ErrorPaths
+=== RUN   TestCheckFile_ErrorPaths/nonexistent_file
+    error_handling_test.go:136: Expected message to contain "not found", got: File '/var/folders/vx/_xxfn0z95bv7qmfgb3nx6z700000gn/T/TestCheckFile_ErrorPathsnonexistent_file3688398798/001/nonexistent.txt' does not exist
+=== RUN   TestCheckFile_ErrorPaths/unreadable_file
+=== RUN   TestCheckFile_ErrorPaths/directory_instead_of_file
+    error_handling_test.go:132: Expected status warn, got fail
+=== RUN   TestCheckFile_ErrorPaths/empty_path
+    error_handling_test.go:136: Expected message to contain "empty", got: File '' does not exist
+=== RUN   TestCheckFile_ErrorPaths/path_with_null_bytes
+--- FAIL: TestCheckFile_ErrorPaths (0.00s)
+    --- FAIL: TestCheckFile_ErrorPaths/nonexistent_file (0.00s)
+    --- PASS: TestCheckFile_ErrorPaths/unreadable_file (0.00s)
+    --- FAIL: TestCheckFile_ErrorPaths/directory_instead_of_file (0.00s)
+    --- FAIL: TestCheckFile_ErrorPaths/empty_path (0.00s)
+    --- PASS: TestCheckFile_ErrorPaths/path_with_null_bytes (0.00s)
+=== RUN   TestCheckConfig_ErrorPaths
+=== RUN   TestCheckConfig_ErrorPaths/missing_config_file
+=== RUN   TestCheckConfig_ErrorPaths/invalid_TOML_syntax
+    error_handling_test.go:218: Expected message to contain "parse", got: Invalid TOML syntax: While parsing config: toml: expected character ]
+=== RUN   TestCheckConfig_ErrorPaths/empty_config_file
+=== RUN   TestCheckConfig_ErrorPaths/config_with_missing_required_fields
+--- FAIL: TestCheckConfig_ErrorPaths (0.00s)
+    --- PASS: TestCheckConfig_ErrorPaths/missing_config_file (0.00s)
+    --- FAIL: TestCheckConfig_ErrorPaths/invalid_TOML_syntax (0.00s)
+    --- PASS: TestCheckConfig_ErrorPaths/empty_config_file (0.00s)
+    --- PASS: TestCheckConfig_ErrorPaths/config_with_missing_required_fields (0.00s)
+=== RUN   TestCheckEnv_ErrorPaths
+=== RUN   TestCheckEnv_ErrorPaths/missing_env_file
+=== RUN   TestCheckEnv_ErrorPaths/missing_required_keys
+    error_handling_test.go:298: Expected status fail, got warn (message: Missing API keys: [MISSING_KEY])
+=== RUN   TestCheckEnv_ErrorPaths/empty_required_keys_list
+=== RUN   TestCheckEnv_ErrorPaths/unreadable_env_file
+    error_handling_test.go:302: Expected message to contain "permission", got: .env file not found at '/var/folders/vx/_xxfn0z95bv7qmfgb3nx6z700000gn/T/TestCheckEnv_ErrorPathsunreadable_env_file2232363461/001/unreadable.env'
+--- FAIL: TestCheckEnv_ErrorPaths (0.00s)
+    --- PASS: TestCheckEnv_ErrorPaths/missing_env_file (0.00s)
+    --- FAIL: TestCheckEnv_ErrorPaths/missing_required_keys (0.00s)
+    --- PASS: TestCheckEnv_ErrorPaths/empty_required_keys_list (0.00s)
+    --- FAIL: TestCheckEnv_ErrorPaths/unreadable_env_file (0.00s)
+=== RUN   TestRunAll_ErrorPaths
+--- PASS: TestRunAll_ErrorPaths (0.00s)
+=== RUN   TestConcurrentChecks
+--- PASS: TestConcurrentChecks (0.00s)
+=== RUN   TestInvalidInput
+=== RUN   TestInvalidInput/binary_with_null_bytes
+=== RUN   TestInvalidInput/file_with_null_bytes
+=== RUN   TestInvalidInput/config_with_null_bytes
+=== RUN   TestInvalidInput/extremely_long_path
+--- PASS: TestInvalidInput (0.00s)
+    --- PASS: TestInvalidInput/binary_with_null_bytes (0.00s)
+    --- PASS: TestInvalidInput/file_with_null_bytes (0.00s)
+    --- PASS: TestInvalidInput/config_with_null_bytes (0.00s)
+    --- PASS: TestInvalidInput/extremely_long_path (0.00s)
+=== RUN   TestErrorMessageClarity
+=== RUN   TestErrorMessageClarity/missing_binary
+=== RUN   TestErrorMessageClarity/missing_file
+    error_handling_test.go:478: Expected message to contain "not found", got: File '/nonexistent/path/file.txt' does not exist
+=== RUN   TestErrorMessageClarity/invalid_config
+    error_handling_test.go:478: Expected message to contain "parse", got: Invalid TOML syntax: While parsing config: toml: expected character ] but the document ended here
+--- FAIL: TestErrorMessageClarity (0.00s)
+    --- PASS: TestErrorMessageClarity/missing_binary (0.00s)
+    --- FAIL: TestErrorMessageClarity/missing_file (0.00s)
+    --- FAIL: TestErrorMessageClarity/invalid_config (0.00s)
+FAIL
+coverage: 94.8% of statements
+FAIL	github.com/yourusername/asc/internal/check	1.163s
+=== RUN   TestConfigStructure
+=== RUN   TestConfigStructure/valid_config_with_all_fields
+--- PASS: TestConfigStructure (0.00s)
+    --- PASS: TestConfigStructure/valid_config_with_all_fields (0.00s)
+=== RUN   TestAgentConfig
+--- PASS: TestAgentConfig (0.00s)
+=== RUN   TestConfigWithMultipleAgents
+--- PASS: TestConfigWithMultipleAgents (0.00s)
+=== RUN   TestConfigDefaults
+--- PASS: TestConfigDefaults (0.00s)
+=== RUN   TestMCPConfig
+--- PASS: TestMCPConfig (0.00s)
+=== RUN   TestConfigFileCreation
+--- PASS: TestConfigFileCreation (0.00s)
+=== RUN   TestValidateAgent
+=== RUN   TestValidateAgent/valid_agent
+=== RUN   TestValidateAgent/missing_command
+=== RUN   TestValidateAgent/command_not_in_PATH
+=== RUN   TestValidateAgent/unsupported_model
+=== RUN   TestValidateAgent/invalid_phase
+=== RUN   TestValidateAgent/no_phases
+--- PASS: TestValidateAgent (0.00s)
+    --- PASS: TestValidateAgent/valid_agent (0.00s)
+    --- PASS: TestValidateAgent/missing_command (0.00s)
+    --- PASS: TestValidateAgent/command_not_in_PATH (0.00s)
+    --- PASS: TestValidateAgent/unsupported_model (0.00s)
+    --- PASS: TestValidateAgent/invalid_phase (0.00s)
+    --- PASS: TestValidateAgent/no_phases (0.00s)
+=== RUN   TestIsValidModel
+=== RUN   TestIsValidModel/claude
+=== RUN   TestIsValidModel/gemini
+=== RUN   TestIsValidModel/gpt-4
+=== RUN   TestIsValidModel/codex
+=== RUN   TestIsValidModel/openai
+=== RUN   TestIsValidModel/Claude
+=== RUN   TestIsValidModel/GEMINI
+=== RUN   TestIsValidModel/invalid
+=== RUN   TestIsValidModel/gpt-3
+=== RUN   TestIsValidModel/#00
+--- PASS: TestIsValidModel (0.00s)
+    --- PASS: TestIsValidModel/claude (0.00s)
+    --- PASS: TestIsValidModel/gemini (0.00s)
+    --- PASS: TestIsValidModel/gpt-4 (0.00s)
+    --- PASS: TestIsValidModel/codex (0.00s)
+    --- PASS: TestIsValidModel/openai (0.00s)
+    --- PASS: TestIsValidModel/Claude (0.00s)
+    --- PASS: TestIsValidModel/GEMINI (0.00s)
+    --- PASS: TestIsValidModel/invalid (0.00s)
+    --- PASS: TestIsValidModel/gpt-3 (0.00s)
+    --- PASS: TestIsValidModel/#00 (0.00s)
+=== RUN   TestIsValidPhase
+=== RUN   TestIsValidPhase/planning
+=== RUN   TestIsValidPhase/implementation
+=== RUN   TestIsValidPhase/testing
+=== RUN   TestIsValidPhase/review
+=== RUN   TestIsValidPhase/Planning
+=== RUN   TestIsValidPhase/TESTING
+=== RUN   TestIsValidPhase/invalid
+=== RUN   TestIsValidPhase/#00
+--- PASS: TestIsValidPhase (0.00s)
+    --- PASS: TestIsValidPhase/planning (0.00s)
+    --- PASS: TestIsValidPhase/implementation (0.00s)
+    --- PASS: TestIsValidPhase/testing (0.00s)
+    --- PASS: TestIsValidPhase/review (0.00s)
+    --- PASS: TestIsValidPhase/Planning (0.00s)
+    --- PASS: TestIsValidPhase/TESTING (0.00s)
+    --- PASS: TestIsValidPhase/invalid (0.00s)
+    --- PASS: TestIsValidPhase/#00 (0.00s)
+=== RUN   TestFindClosestPhase
+=== RUN   TestFindClosestPhase/plan
+=== RUN   TestFindClosestPhase/impl
+=== RUN   TestFindClosestPhase/test
+=== RUN   TestFindClosestPhase/doc
+=== RUN   TestFindClosestPhase/docs
+=== RUN   TestFindClosestPhase/plann
+=== RUN   TestFindClosestPhase/implement
+=== RUN   TestFindClosestPhase/xyz
+--- PASS: TestFindClosestPhase (0.00s)
+    --- PASS: TestFindClosestPhase/plan (0.00s)
+    --- PASS: TestFindClosestPhase/impl (0.00s)
+    --- PASS: TestFindClosestPhase/test (0.00s)
+    --- PASS: TestFindClosestPhase/doc (0.00s)
+    --- PASS: TestFindClosestPhase/docs (0.00s)
+    --- PASS: TestFindClosestPhase/plann (0.00s)
+    --- PASS: TestFindClosestPhase/implement (0.00s)
+    --- PASS: TestFindClosestPhase/xyz (0.00s)
+=== RUN   TestValidateWithWarnings
+=== RUN   TestValidateWithWarnings/all_agents_same_model
+=== RUN   TestValidateWithWarnings/missing_critical_phase
+--- PASS: TestValidateWithWarnings (0.00s)
+    --- PASS: TestValidateWithWarnings/all_agents_same_model (0.00s)
+    --- PASS: TestValidateWithWarnings/missing_critical_phase (0.00s)
+=== RUN   TestDuplicateAgentNames
+--- PASS: TestDuplicateAgentNames (0.00s)
+=== RUN   TestLoadConfig_ErrorPaths
+=== RUN   TestLoadConfig_ErrorPaths/missing_config_file
+    error_handling_test.go:102: Expected error to contain "no such file", got: configuration file not found: /var/folders/vx/_xxfn0z95bv7qmfgb3nx6z700000gn/T/TestLoadConfig_ErrorPathsmissing_config_file523870849/001/nonexistent.toml
+=== RUN   TestLoadConfig_ErrorPaths/invalid_TOML_syntax
+    error_handling_test.go:102: Expected error to contain "parse", got: failed to read config file: While parsing config: toml: expected character ]
+=== RUN   TestLoadConfig_ErrorPaths/empty_config_file
+    error_handling_test.go:102: Expected error to contain "beads_db_path", got: config validation failed: at least one agent must be defined
+=== RUN   TestLoadConfig_ErrorPaths/missing_required_fields
+    error_handling_test.go:102: Expected error to contain "beads_db_path", got: config validation failed: at least one agent must be defined
+=== RUN   TestLoadConfig_ErrorPaths/invalid_agent_configuration
+--- FAIL: TestLoadConfig_ErrorPaths (0.00s)
+    --- FAIL: TestLoadConfig_ErrorPaths/missing_config_file (0.00s)
+    --- FAIL: TestLoadConfig_ErrorPaths/invalid_TOML_syntax (0.00s)
+    --- FAIL: TestLoadConfig_ErrorPaths/empty_config_file (0.00s)
+    --- FAIL: TestLoadConfig_ErrorPaths/missing_required_fields (0.00s)
+    --- PASS: TestLoadConfig_ErrorPaths/invalid_agent_configuration (0.00s)
+=== RUN   TestValidate_ErrorPaths
+=== RUN   TestValidate_ErrorPaths/nil_config
+    error_handling_test.go:229: validate function doesn't handle nil config
+=== RUN   TestValidate_ErrorPaths/empty_beads_path
+=== RUN   TestValidate_ErrorPaths/empty_MCP_URL
+=== RUN   TestValidate_ErrorPaths/agent_with_empty_command
+=== RUN   TestValidate_ErrorPaths/agent_with_empty_model
+    error_handling_test.go:238: Expected error to contain "model", got: agent 'test': command 'python' not found in PATH
+          Suggestion: Install the required binary or check your PATH environment variable
+=== RUN   TestValidate_ErrorPaths/agent_with_empty_phases
+    error_handling_test.go:238: Expected error to contain "phases", got: agent 'test': command 'python' not found in PATH
+          Suggestion: Install the required binary or check your PATH environment variable
+--- FAIL: TestValidate_ErrorPaths (0.00s)
+    --- SKIP: TestValidate_ErrorPaths/nil_config (0.00s)
+    --- PASS: TestValidate_ErrorPaths/empty_beads_path (0.00s)
+    --- PASS: TestValidate_ErrorPaths/empty_MCP_URL (0.00s)
+    --- PASS: TestValidate_ErrorPaths/agent_with_empty_command (0.00s)
+    --- FAIL: TestValidate_ErrorPaths/agent_with_empty_model (0.00s)
+    --- FAIL: TestValidate_ErrorPaths/agent_with_empty_phases (0.00s)
+=== RUN   TestLoadEnv_ErrorPaths
+=== RUN   TestLoadEnv_ErrorPaths/missing_env_file
+    error_handling_test.go:304: Expected error to contain "no such file", got: environment file not found: /var/folders/vx/_xxfn0z95bv7qmfgb3nx6z700000gn/T/TestLoadEnv_ErrorPathsmissing_env_file2782527036/001/nonexistent.env
+=== RUN   TestLoadEnv_ErrorPaths/unreadable_env_file
+=== RUN   TestLoadEnv_ErrorPaths/malformed_env_file
+    error_handling_test.go:308: Unexpected error: invalid format at line 2: expected KEY=VALUE
+--- FAIL: TestLoadEnv_ErrorPaths (0.00s)
+    --- FAIL: TestLoadEnv_ErrorPaths/missing_env_file (0.00s)
+    --- PASS: TestLoadEnv_ErrorPaths/unreadable_env_file (0.00s)
+    --- FAIL: TestLoadEnv_ErrorPaths/malformed_env_file (0.00s)
+=== RUN   TestErrorWrapping
+--- PASS: TestErrorWrapping (0.00s)
+=== RUN   TestRecoveryFromTransientErrors
+    error_handling_test.go:366: Expected success after file creation, got: config validation failed: agent 'test': command 'python' not found in PATH
+          Suggestion: Install the required binary or check your PATH environment variable
+    error_handling_test.go:369: Expected valid config
+--- FAIL: TestRecoveryFromTransientErrors (0.00s)
+=== RUN   TestReloadManager_AddAgent
+--- PASS: TestReloadManager_AddAgent (0.00s)
+=== RUN   TestReloadManager_RemoveAgent
+--- PASS: TestReloadManager_RemoveAgent (0.00s)
+=== RUN   TestReloadManager_UpdateAgent
+--- PASS: TestReloadManager_UpdateAgent (0.00s)
+=== RUN   TestGetTemplate
+=== RUN   TestGetTemplate/solo_template
+=== RUN   TestGetTemplate/team_template
+=== RUN   TestGetTemplate/swarm_template
+=== RUN   TestGetTemplate/invalid_template
+--- PASS: TestGetTemplate (0.00s)
+    --- PASS: TestGetTemplate/solo_template (0.00s)
+    --- PASS: TestGetTemplate/team_template (0.00s)
+    --- PASS: TestGetTemplate/swarm_template (0.00s)
+    --- PASS: TestGetTemplate/invalid_template (0.00s)
+=== RUN   TestListTemplates
+--- PASS: TestListTemplates (0.00s)
+=== RUN   TestSaveAndLoadCustomTemplate
+--- PASS: TestSaveAndLoadCustomTemplate (0.00s)
+=== RUN   TestSaveCustomTemplate
+--- PASS: TestSaveCustomTemplate (0.00s)
+=== RUN   TestListCustomTemplates
+--- PASS: TestListCustomTemplates (0.00s)
+=== RUN   TestLoadCustomTemplateByName
+--- PASS: TestLoadCustomTemplateByName (0.00s)
+=== RUN   TestWatcher_Basic
+--- PASS: TestWatcher_Basic (0.60s)
+=== RUN   TestWatcher_InvalidConfig
+failed to reload config: config validation failed: agent 'test-agent': unsupported model 'invalid-model'
+  Supported models: claude, gemini, gpt-4, codex, openai
+  Suggestion: Use one of the supported models or check for typos
+--- PASS: TestWatcher_InvalidConfig (1.11s)
+=== RUN   TestWatcher_MultipleChanges
+--- PASS: TestWatcher_MultipleChanges (2.26s)
+FAIL
+coverage: 76.6% of statements
+FAIL	github.com/yourusername/asc/internal/config	4.962s
+=== RUN   TestNewDoctor
+--- PASS: TestNewDoctor (0.00s)
+=== RUN   TestDiagnosticReport_HasCriticalIssues
+=== RUN   TestDiagnosticReport_HasCriticalIssues/no_issues
+=== RUN   TestDiagnosticReport_HasCriticalIssues/only_low_severity
+=== RUN   TestDiagnosticReport_HasCriticalIssues/has_critical
+--- PASS: TestDiagnosticReport_HasCriticalIssues (0.00s)
+    --- PASS: TestDiagnosticReport_HasCriticalIssues/no_issues (0.00s)
+    --- PASS: TestDiagnosticReport_HasCriticalIssues/only_low_severity (0.00s)
+    --- PASS: TestDiagnosticReport_HasCriticalIssues/has_critical (0.00s)
+=== RUN   TestDiagnosticReport_ToJSON
+--- PASS: TestDiagnosticReport_ToJSON (0.00s)
+=== RUN   TestDiagnosticReport_Format
+--- PASS: TestDiagnosticReport_Format (0.00s)
+=== RUN   TestIsProcessRunning
+--- PASS: TestIsProcessRunning (0.00s)
+=== RUN   TestGetDirSize
+--- PASS: TestGetDirSize (0.00s)
+=== RUN   TestGenerateHealthSummary
+=== RUN   TestGenerateHealthSummary/no_issues
+=== RUN   TestGenerateHealthSummary/one_critical
+=== RUN   TestGenerateHealthSummary/mixed_severities
+--- PASS: TestGenerateHealthSummary (0.00s)
+    --- PASS: TestGenerateHealthSummary/no_issues (0.00s)
+    --- PASS: TestGenerateHealthSummary/one_critical (0.00s)
+    --- PASS: TestGenerateHealthSummary/mixed_severities (0.00s)
+=== RUN   TestRecoveryFromCorruptedPID
+--- PASS: TestRecoveryFromCorruptedPID (0.00s)
+=== RUN   TestRecoveryFromOrphanedPID
+--- PASS: TestRecoveryFromOrphanedPID (0.00s)
+=== RUN   TestRecoveryFromLargeLogs
+--- PASS: TestRecoveryFromLargeLogs (0.01s)
+=== RUN   TestRecoveryFromPermissionIssues
+--- PASS: TestRecoveryFromPermissionIssues (0.00s)
+=== RUN   TestRecoveryFromMissingDirectories
+--- PASS: TestRecoveryFromMissingDirectories (0.00s)
+=== RUN   TestDoctorWithMultipleIssues
+--- PASS: TestDoctorWithMultipleIssues (0.00s)
+PASS
+coverage: 69.8% of statements
+ok  	github.com/yourusername/asc/internal/doctor	0.819s	coverage: 69.8% of statements
+=== RUN   TestNew
+=== RUN   TestNew/config_error
+=== RUN   TestNew/dependency_error
+=== RUN   TestNew/process_error
+=== RUN   TestNew/network_error
+=== RUN   TestNew/user_error
+--- PASS: TestNew (0.00s)
+    --- PASS: TestNew/config_error (0.00s)
+    --- PASS: TestNew/dependency_error (0.00s)
+    --- PASS: TestNew/process_error (0.00s)
+    --- PASS: TestNew/network_error (0.00s)
+    --- PASS: TestNew/user_error (0.00s)
+=== RUN   TestWrap
+--- PASS: TestWrap (0.00s)
+=== RUN   TestASCError_Error
+=== RUN   TestASCError_Error/simple_error
+=== RUN   TestASCError_Error/wrapped_error
+--- PASS: TestASCError_Error (0.00s)
+    --- PASS: TestASCError_Error/simple_error (0.00s)
+    --- PASS: TestASCError_Error/wrapped_error (0.00s)
+=== RUN   TestASCError_Unwrap
+--- PASS: TestASCError_Unwrap (0.00s)
+=== RUN   TestASCError_WithReason
+--- PASS: TestASCError_WithReason (0.00s)
+=== RUN   TestASCError_WithSolution
+--- PASS: TestASCError_WithSolution (0.00s)
+=== RUN   TestASCError_Chaining
+--- PASS: TestASCError_Chaining (0.00s)
+=== RUN   TestASCError_FormatCLI
+=== RUN   TestASCError_FormatCLI/simple_error
+=== RUN   TestASCError_FormatCLI/error_with_reason
+=== RUN   TestASCError_FormatCLI/error_with_solution
+=== RUN   TestASCError_FormatCLI/error_with_all_fields
+--- PASS: TestASCError_FormatCLI (0.00s)
+    --- PASS: TestASCError_FormatCLI/simple_error (0.00s)
+    --- PASS: TestASCError_FormatCLI/error_with_reason (0.00s)
+    --- PASS: TestASCError_FormatCLI/error_with_solution (0.00s)
+    --- PASS: TestASCError_FormatCLI/error_with_all_fields (0.00s)
+=== RUN   TestASCError_FormatTUI
+=== RUN   TestASCError_FormatTUI/simple_error
+=== RUN   TestASCError_FormatTUI/error_with_reason
+=== RUN   TestASCError_FormatTUI/error_with_solution
+=== RUN   TestASCError_FormatTUI/error_with_all_fields
+--- PASS: TestASCError_FormatTUI (0.00s)
+    --- PASS: TestASCError_FormatTUI/simple_error (0.00s)
+    --- PASS: TestASCError_FormatTUI/error_with_reason (0.00s)
+    --- PASS: TestASCError_FormatTUI/error_with_solution (0.00s)
+    --- PASS: TestASCError_FormatTUI/error_with_all_fields (0.00s)
+=== RUN   TestNewConfigError
+--- PASS: TestNewConfigError (0.00s)
+=== RUN   TestNewDependencyError
+--- PASS: TestNewDependencyError (0.00s)
+=== RUN   TestNewProcessError
+--- PASS: TestNewProcessError (0.00s)
+=== RUN   TestNewNetworkError
+--- PASS: TestNewNetworkError (0.00s)
+=== RUN   TestNewUserError
+--- PASS: TestNewUserError (0.00s)
+=== RUN   TestNewFileNotFoundError
+--- PASS: TestNewFileNotFoundError (0.00s)
+=== RUN   TestNewInvalidConfigError
+--- PASS: TestNewInvalidConfigError (0.00s)
+=== RUN   TestNewProcessStartError
+--- PASS: TestNewProcessStartError (0.00s)
+=== RUN   TestNewProcessStopError
+--- PASS: TestNewProcessStopError (0.00s)
+=== RUN   TestNewBeadsError
+--- PASS: TestNewBeadsError (0.00s)
+=== RUN   TestNewMCPError
+--- PASS: TestNewMCPError (0.00s)
+=== RUN   TestNewEnvError
+--- PASS: TestNewEnvError (0.00s)
+=== RUN   TestNewAPIKeyError
+--- PASS: TestNewAPIKeyError (0.00s)
+=== RUN   TestErrorCategories
+=== RUN   TestErrorCategories/Configuration_Error
+=== RUN   TestErrorCategories/Dependency_Error
+=== RUN   TestErrorCategories/Process_Error
+=== RUN   TestErrorCategories/Network_Error
+=== RUN   TestErrorCategories/User_Error
+--- PASS: TestErrorCategories (0.00s)
+    --- PASS: TestErrorCategories/Configuration_Error (0.00s)
+    --- PASS: TestErrorCategories/Dependency_Error (0.00s)
+    --- PASS: TestErrorCategories/Process_Error (0.00s)
+    --- PASS: TestErrorCategories/Network_Error (0.00s)
+    --- PASS: TestErrorCategories/User_Error (0.00s)
+=== RUN   TestErrorWrapping
+--- PASS: TestErrorWrapping (0.00s)
+PASS
+coverage: 100.0% of statements
+ok  	github.com/yourusername/asc/internal/errors	0.254s	coverage: 100.0% of statements
+=== RUN   TestNewMonitor
+--- PASS: TestNewMonitor (0.00s)
+=== RUN   TestDetectCrashedAgent
+--- PASS: TestDetectCrashedAgent (0.00s)
+=== RUN   TestDetectUnresponsiveAgent
+--- PASS: TestDetectUnresponsiveAgent (1.00s)
+=== RUN   TestDetectStuckAgent
+--- PASS: TestDetectStuckAgent (0.00s)
+=== RUN   TestHealthyAgents
+--- PASS: TestHealthyAgents (0.00s)
+=== RUN   TestGetHealthSummary
+--- PASS: TestGetHealthSummary (0.00s)
+=== RUN   TestAutoRecoveryConfiguration
+--- PASS: TestAutoRecoveryConfiguration (0.00s)
+=== RUN   TestRecoveryActions
+--- PASS: TestRecoveryActions (0.00s)
+=== RUN   TestRecoverySuccessRate
+--- PASS: TestRecoverySuccessRate (0.00s)
+=== RUN   TestRecoveryBackoff
+--- PASS: TestRecoveryBackoff (0.00s)
+=== RUN   TestGetRecoveryStats
+--- PASS: TestGetRecoveryStats (0.00s)
+PASS
+coverage: 72.0% of statements
+ok  	github.com/yourusername/asc/internal/health	1.595s	coverage: 72.0% of statements
+=== RUN   TestLogAggregator
+--- PASS: TestLogAggregator (0.00s)
+=== RUN   TestLogFiltering
+--- PASS: TestLogFiltering (0.00s)
+=== RUN   TestLogExport
+--- PASS: TestLogExport (0.00s)
+=== RUN   TestLogStats
+--- PASS: TestLogStats (0.00s)
+=== RUN   TestCleanupOldLogs
+--- PASS: TestCleanupOldLogs (0.00s)
+=== RUN   TestStructuredLogging
+--- PASS: TestStructuredLogging (0.00s)
+=== RUN   TestTextLogging
+--- PASS: TestTextLogging (0.00s)
+=== RUN   TestCorrelationID
+--- PASS: TestCorrelationID (0.00s)
+=== RUN   TestContextFields
+--- PASS: TestContextFields (0.00s)
+=== RUN   TestLogLevels
+--- PASS: TestLogLevels (0.00s)
+=== RUN   TestLogRotation
+--- PASS: TestLogRotation (0.11s)
+PASS
+coverage: 67.7% of statements
+ok  	github.com/yourusername/asc/internal/logger	0.540s	coverage: 67.7% of statements
+FAIL	github.com/yourusername/asc/internal/mcp [build failed]
+FAIL	github.com/yourusername/asc/internal/process [build failed]
+=== RUN   TestNewManager
+--- PASS: TestNewManager (0.00s)
+=== RUN   TestNewManagerWithKeyPath
+--- PASS: TestNewManagerWithKeyPath (0.00s)
+=== RUN   TestKeyExists
+--- PASS: TestKeyExists (0.00s)
+=== RUN   TestIsAgeInstalled
+    secrets_test.go:59: age installed: false
+--- PASS: TestIsAgeInstalled (0.00s)
+=== RUN   TestValidateEnvFile
+=== RUN   TestValidateEnvFile/valid_env_file
+=== RUN   TestValidateEnvFile/missing_keys
+=== RUN   TestValidateEnvFile/with_comments
+=== RUN   TestValidateEnvFile/empty_file
+--- PASS: TestValidateEnvFile (0.00s)
+    --- PASS: TestValidateEnvFile/valid_env_file (0.00s)
+    --- PASS: TestValidateEnvFile/missing_keys (0.00s)
+    --- PASS: TestValidateEnvFile/with_comments (0.00s)
+    --- PASS: TestValidateEnvFile/empty_file (0.00s)
+=== RUN   TestValidateEnvFileMissing
+--- PASS: TestValidateEnvFileMissing (0.00s)
+=== RUN   TestGetKeyPath
+--- PASS: TestGetKeyPath (0.00s)
+=== RUN   TestEncryptDecryptFlow
+    secrets_test.go:142: age not installed, skipping encryption test
+--- SKIP: TestEncryptDecryptFlow (0.00s)
+=== RUN   TestGetPublicKey
+    secrets_test.go:203: age not installed, skipping public key test
+--- SKIP: TestGetPublicKey (0.00s)
+=== RUN   TestEncryptEnvHelperMethod
+    secrets_test.go:240: age not installed, skipping test
+--- SKIP: TestEncryptEnvHelperMethod (0.00s)
+=== RUN   TestDecryptEnvHelperMethod
+    secrets_test.go:282: age not installed, skipping test
+--- SKIP: TestDecryptEnvHelperMethod (0.00s)
+=== RUN   TestDecryptEnvMissingFile
+--- PASS: TestDecryptEnvMissingFile (0.00s)
+=== RUN   TestGenerateKey_NoAge
+--- PASS: TestGenerateKey_NoAge (0.00s)
+=== RUN   TestEncrypt_NoKey
+--- PASS: TestEncrypt_NoKey (0.00s)
+=== RUN   TestDecrypt_NoKey
+--- PASS: TestDecrypt_NoKey (0.00s)
+=== RUN   TestValidateEnvFile_WithExtraKeys
+--- PASS: TestValidateEnvFile_WithExtraKeys (0.00s)
+=== RUN   TestValidateEnvFile_WithWhitespace
+--- PASS: TestValidateEnvFile_WithWhitespace (0.00s)
+=== RUN   TestValidateEnvFile_MissingOneKey
+=== RUN   TestValidateEnvFile_MissingOneKey/missing_CLAUDE_API_KEY
+=== RUN   TestValidateEnvFile_MissingOneKey/missing_OPENAI_API_KEY
+=== RUN   TestValidateEnvFile_MissingOneKey/missing_GOOGLE_API_KEY
+--- PASS: TestValidateEnvFile_MissingOneKey (0.00s)
+    --- PASS: TestValidateEnvFile_MissingOneKey/missing_CLAUDE_API_KEY (0.00s)
+    --- PASS: TestValidateEnvFile_MissingOneKey/missing_OPENAI_API_KEY (0.00s)
+    --- PASS: TestValidateEnvFile_MissingOneKey/missing_GOOGLE_API_KEY (0.00s)
+=== RUN   TestValidateEnvFile_InvalidFormat
+--- PASS: TestValidateEnvFile_InvalidFormat (0.00s)
+=== RUN   TestGetPublicKey_InvalidKeyFile
+--- PASS: TestGetPublicKey_InvalidKeyFile (0.00s)
+=== RUN   TestCopyFile
+--- PASS: TestCopyFile (0.00s)
+=== RUN   TestCopyFile_NonexistentSource
+--- PASS: TestCopyFile_NonexistentSource (0.00s)
+=== RUN   TestCopyFile_InvalidDestination
+--- PASS: TestCopyFile_InvalidDestination (0.00s)
+=== RUN   TestRotateKey
+    secrets_test.go:590: age not installed, skipping key rotation test
+--- SKIP: TestRotateKey (0.00s)
+=== RUN   TestRotateKey_NoExistingKey
+    secrets_test.go:646: age not installed, skipping test
+--- SKIP: TestRotateKey_NoExistingKey (0.00s)
+=== RUN   TestEncrypt_NoAge
+--- PASS: TestEncrypt_NoAge (0.00s)
+=== RUN   TestDecrypt_NoAge
+--- PASS: TestDecrypt_NoAge (0.00s)
+=== RUN   TestEncryptEnv_EmptyPath
+    secrets_test.go:707: age not installed, skipping test
+--- SKIP: TestEncryptEnv_EmptyPath (0.00s)
+=== RUN   TestDecryptEnv_EmptyPath
+    secrets_test.go:744: age not installed, skipping test
+--- SKIP: TestDecryptEnv_EmptyPath (0.00s)
+=== RUN   TestManager_MultipleOperations
+    secrets_test.go:789: age not installed, skipping test
+--- SKIP: TestManager_MultipleOperations (0.00s)
+=== RUN   TestValidateEnvFile_EmptyValues
+--- PASS: TestValidateEnvFile_EmptyValues (0.00s)
+=== RUN   TestValidateEnvFile_OnlyComments
+--- PASS: TestValidateEnvFile_OnlyComments (0.00s)
+PASS
+coverage: 47.4% of statements
+ok  	github.com/yourusername/asc/internal/secrets	1.155s	coverage: 47.4% of statements
+=== RUN   TestTaskNavigation
+--- PASS: TestTaskNavigation (0.00s)
+=== RUN   TestTaskModalToggle
+--- PASS: TestTaskModalToggle (0.00s)
+=== RUN   TestCreateTaskModal
+--- PASS: TestCreateTaskModal (0.00s)
+=== RUN   TestAgentSelection
+--- PASS: TestAgentSelection (0.00s)
+=== RUN   TestConfirmModal
+--- PASS: TestConfirmModal (0.00s)
+=== RUN   TestSearchMode
+--- PASS: TestSearchMode (0.00s)
+=== RUN   TestFilterCycling
+--- PASS: TestFilterCycling (0.00s)
+=== RUN   TestPerformanceMonitorAccuracy
+--- PASS: TestPerformanceMonitorAccuracy (0.17s)
+=== RUN   TestRenderCacheExpiration
+--- PASS: TestRenderCacheExpiration (0.10s)
+=== RUN   TestRenderCacheEviction
+--- PASS: TestRenderCacheEviction (0.02s)
+=== RUN   TestThrottleRateLimit
+--- PASS: TestThrottleRateLimit (0.06s)
+=== RUN   TestDebounceDelay
+--- PASS: TestDebounceDelay (0.12s)
+=== RUN   TestMicroInteractionProgress
+--- PASS: TestMicroInteractionProgress (0.11s)
+PASS
+coverage: 4.1% of statements
+ok  	github.com/yourusername/asc/internal/tui	1.728s	coverage: 4.1% of statements
+=== RUN   TestMemoryUsageUnderLoad
+=== RUN   TestMemoryUsageUnderLoad/Small
+    performance_test.go:81: Memory allocated: 5.81 MB
+=== RUN   TestMemoryUsageUnderLoad/Medium
+    performance_test.go:81: Memory allocated: 20.24 MB
+=== RUN   TestMemoryUsageUnderLoad/Large
+    performance_test.go:81: Memory allocated: 47.29 MB
+--- PASS: TestMemoryUsageUnderLoad (0.21s)
+    --- PASS: TestMemoryUsageUnderLoad/Small (0.02s)
+    --- PASS: TestMemoryUsageUnderLoad/Medium (0.06s)
+    --- PASS: TestMemoryUsageUnderLoad/Large (0.13s)
+=== RUN   TestStartupTime
+    performance_test.go:113: Startup time: 433.583µs
+--- PASS: TestStartupTime (0.00s)
+=== RUN   TestShutdownTime
+    performance_test.go:158: Shutdown time: 994.917µs
+--- PASS: TestShutdownTime (0.01s)
+=== RUN   TestConfigLoadPerformance
+=== RUN   TestConfigLoadPerformance/10_agents
+    performance_test.go:235: Load time: 502.167µs
+=== RUN   TestConfigLoadPerformance/50_agents
+    performance_test.go:235: Load time: 1.391875ms
+=== RUN   TestConfigLoadPerformance/100_agents
+    performance_test.go:235: Load time: 2.766583ms
+--- PASS: TestConfigLoadPerformance (0.01s)
+    --- PASS: TestConfigLoadPerformance/10_agents (0.00s)
+    --- PASS: TestConfigLoadPerformance/50_agents (0.00s)
+    --- PASS: TestConfigLoadPerformance/100_agents (0.00s)
+=== RUN   TestPerformanceRegression
+=== RUN   TestPerformanceRegression/ConfigLoad
+=== RUN   TestPerformanceRegression/TUIRender
+    performance_test.go:277: TUI model not yet fully implemented for performance testing
+=== RUN   TestPerformanceRegression/ProcessStart
+--- PASS: TestPerformanceRegression (0.00s)
+    --- PASS: TestPerformanceRegression/ConfigLoad (0.00s)
+    --- SKIP: TestPerformanceRegression/TUIRender (0.00s)
+    --- PASS: TestPerformanceRegression/ProcessStart (0.00s)
+=== RUN   TestAPIKeyHandling
+=== RUN   TestAPIKeyHandling/API_keys_not_logged
+=== RUN   TestAPIKeyHandling/API_keys_masked_in_error_messages
+=== RUN   TestAPIKeyHandling/API_keys_not_in_command_line_args
+--- PASS: TestAPIKeyHandling (0.00s)
+    --- PASS: TestAPIKeyHandling/API_keys_not_logged (0.00s)
+    --- PASS: TestAPIKeyHandling/API_keys_masked_in_error_messages (0.00s)
+    --- PASS: TestAPIKeyHandling/API_keys_not_in_command_line_args (0.00s)
+=== RUN   TestFilePermissions
+=== RUN   TestFilePermissions/.env_file_permissions
+=== RUN   TestFilePermissions/age_key_file_permissions
+    security_test.go:118: age not installed
+=== RUN   TestFilePermissions/log_directory_permissions
+=== RUN   TestFilePermissions/PID_directory_permissions
+=== RUN   TestFilePermissions/world-readable_.env_detection
+    security_test.go:214: Correctly detected world-readable .env file with permissions -rw-r--r--
+--- PASS: TestFilePermissions (0.00s)
+    --- PASS: TestFilePermissions/.env_file_permissions (0.00s)
+    --- SKIP: TestFilePermissions/age_key_file_permissions (0.00s)
+    --- PASS: TestFilePermissions/log_directory_permissions (0.00s)
+    --- PASS: TestFilePermissions/PID_directory_permissions (0.00s)
+    --- PASS: TestFilePermissions/world-readable_.env_detection (0.00s)
+=== RUN   TestInputValidation
+=== RUN   TestInputValidation/config_file_path_validation
+=== RUN   TestInputValidation/agent_name_validation
+=== RUN   TestInputValidation/command_validation
+=== RUN   TestInputValidation/environment_variable_validation
+=== RUN   TestInputValidation/TOML_injection_prevention
+--- PASS: TestInputValidation (0.00s)
+    --- PASS: TestInputValidation/config_file_path_validation (0.00s)
+    --- PASS: TestInputValidation/agent_name_validation (0.00s)
+    --- PASS: TestInputValidation/command_validation (0.00s)
+    --- PASS: TestInputValidation/environment_variable_validation (0.00s)
+    --- PASS: TestInputValidation/TOML_injection_prevention (0.00s)
+=== RUN   TestCommandInjection
+=== RUN   TestCommandInjection/shell_metacharacters_in_paths
+=== RUN   TestCommandInjection/command_argument_escaping
+=== RUN   TestCommandInjection/no_shell_execution
+--- PASS: TestCommandInjection (0.00s)
+    --- PASS: TestCommandInjection/shell_metacharacters_in_paths (0.00s)
+    --- PASS: TestCommandInjection/command_argument_escaping (0.00s)
+    --- PASS: TestCommandInjection/no_shell_execution (0.00s)
+=== RUN   TestPathTraversal
+=== RUN   TestPathTraversal/relative_path_traversal
+    security_test.go:434: Correctly detected traversal: ../../../etc/passwd
+    security_test.go:434: Correctly detected traversal: logs/../../etc/passwd
+    security_test.go:434: Correctly detected traversal: ./../../sensitive
+=== RUN   TestPathTraversal/absolute_path_validation
+    security_test.go:453: Correctly detected absolute path: /etc/passwd
+    security_test.go:453: Correctly detected absolute path: /root/.ssh/id_rsa
+=== RUN   TestPathTraversal/symlink_traversal
+    security_test.go:480: Correctly detected symlink traversal: /var/folders/vx/_xxfn0z95bv7qmfgb3nx6z700000gn/T/TestPathTraversalsymlink_traversal2176964533/001/link -> /private/etc/passwd
+--- PASS: TestPathTraversal (0.00s)
+    --- PASS: TestPathTraversal/relative_path_traversal (0.00s)
+    --- PASS: TestPathTraversal/absolute_path_validation (0.00s)
+    --- PASS: TestPathTraversal/symlink_traversal (0.00s)
+=== RUN   TestSecretsEncryption
+    security_test.go:489: age not installed
+--- SKIP: TestSecretsEncryption (0.00s)
+PASS
+coverage: [no statements]
+ok  	github.com/yourusername/asc/test	1.740s	coverage: [no statements]
+FAIL

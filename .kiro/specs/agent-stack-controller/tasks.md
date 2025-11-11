@@ -831,3 +831,600 @@
     - Create operator's handbook
     - Add inline code examples
     - _Requirements: All_
+
+## Phase 29: Final Validation and Gap Analysis
+
+- [ ] 29. Comprehensive build, test, and validation cycle
+  - [x] 29.1 Perform full clean build
+    - Clean all build artifacts and caches
+    - Build for all target platforms (Linux amd64, macOS amd64, macOS arm64)
+    - Verify binary sizes are reasonable
+    - Test binary execution on each platform
+    - Document build times and optimization opportunities
+    - Verify all dependencies are properly vendored
+    - Check for any build warnings or errors
+    - _Requirements: All_
+  
+  - [x] 29.2 Run complete test suite
+    - Run all unit tests with coverage reporting
+    - Run all integration tests
+    - Run all E2E tests (including long-running and stress tests)
+    - Run all error handling tests
+    - Run all performance tests
+    - Run all security tests
+    - Run all usability tests
+    - Generate comprehensive test report
+    - _Requirements: All_
+  
+  - [x] 29.3 Analyze test results and coverage
+    - Review test coverage by package
+    - Identify packages with <80% coverage
+    - Analyze uncovered code paths
+    - Review test execution times
+    - Identify slow tests (>5s)
+    - Check for test flakiness
+    - Document test failures and their causes
+    - Create prioritized list of coverage gaps
+    - _Requirements: All_
+  
+  - [x] 29.4 Run static analysis and linting
+    - Run golangci-lint with all enabled linters
+    - Run gosec security scanner
+    - Run go vet
+    - Check for code formatting issues (gofmt)
+    - Run Python linting (pylint, flake8) on agent code
+    - Review and address all high-priority issues
+    - Document any accepted warnings with justification
+    - _Requirements: All_
+  
+  - [x] 29.5 Validate documentation completeness
+    - Verify all public APIs are documented
+    - Check all CLI commands have help text
+    - Verify all configuration options are documented
+    - Check all error messages are clear and actionable
+    - Verify code examples compile and run
+    - Check for broken links in documentation
+    - Verify documentation matches implementation
+    - Test all documented workflows
+    - _Requirements: All_
+  
+  - [x] 29.6 Test dependency compatibility
+    - Test with minimum supported Go version (1.21)
+    - Test with latest Go version (1.22+)
+    - Test with minimum Python version (3.8)
+    - Test with latest Python version (3.12+)
+    - Verify all external dependencies are available
+    - Test dependency update scenarios
+    - Check for deprecated dependency usage
+    - Document any version-specific issues
+    - _Requirements: All_
+  
+  - [x] 29.7 Perform integration validation
+    - Test asc init workflow end-to-end
+    - Test asc up → work → down workflow
+    - Test configuration hot-reload
+    - Test secrets encryption/decryption
+    - Test health monitoring and recovery
+    - Test with real beads repository
+    - Test with real mcp_agent_mail server
+    - Test multi-agent coordination
+    - _Requirements: All_
+  
+  - [x] 29.8 Security validation
+    - Verify no secrets in logs
+    - Check file permissions on sensitive files
+    - Test API key handling
+    - Verify input sanitization
+    - Check for command injection vulnerabilities
+    - Test path traversal protection
+    - Review security scan results
+    - Verify security best practices are followed
+    - _Requirements: 1.5, 4.3, All_
+  
+  - [x] 29.9 Performance validation
+    - Measure startup time
+    - Measure shutdown time
+    - Test memory usage with 1, 3, 5, 10 agents
+    - Test TUI responsiveness under load
+    - Measure task processing throughput
+    - Test with large log files (>100MB)
+    - Test with many tasks (>1000)
+    - Document performance characteristics
+    - _Requirements: All_
+  
+  - [x] 29.10 Create gap analysis report
+    - Document all identified issues by severity
+    - List all test failures with root causes
+    - Document coverage gaps by priority
+    - List all linting/static analysis issues
+    - Document documentation gaps
+    - List all performance issues
+    - Document security concerns
+    - Create prioritized remediation plan
+    - _Requirements: All_
+  
+  - [x] 29.11 Plan remediation work
+    - Categorize issues (critical, high, medium, low)
+    - Create tasks for critical issues
+    - Create tasks for high-priority issues
+    - Estimate effort for each task
+    - Prioritize based on impact and effort
+    - Create implementation timeline
+    - Assign owners to tasks
+    - Update project roadmap
+    - _Requirements: All_
+  
+  - [x] 29.12 Create validation summary report
+    - Summarize build results
+    - Summarize test results and coverage
+    - Summarize static analysis results
+    - Summarize documentation validation
+    - Summarize integration testing
+    - Summarize security validation
+    - Summarize performance validation
+    - List all identified gaps and planned work
+    - Provide go/no-go recommendation for release
+    - _Requirements: All_
+
+
+## Phase 30: Remediation Work
+
+- [-] 30. Execute remediation plan for identified gaps
+  
+  ### Phase 30.0: Immediate Critical Blockers (Days 1-2)
+  
+  - [x] 30.0.1 Fix compilation errors blocking tests (CRITICAL - 3 hours)
+    - Fix internal/beads/error_handling_test.go compilation errors
+      - Update NewClient call to include time.Duration parameter (line 41)
+      - Fix type mismatch for string constant (line 234)
+      - Remove duplicate contains function (line 582)
+      - Verify tests compile and run
+    - Fix internal/mcp/error_handling_test.go compilation errors
+      - Locate correct NewClient function or import
+      - Update all function calls to use correct signature
+      - Verify tests compile and run
+    - Fix internal/process/error_handling_test.go compilation errors
+      - Fix variable declaration on line 289 (use = instead of :=)
+      - Fix PID type mismatches (lines 300, 310)
+      - Verify tests compile and run
+    - Run go test ./... to verify all packages compile
+    - _Requirements: All_
+  
+  - [ ] 30.0.2 Fix test assertion failures (CRITICAL - 4 hours)
+    - Fix internal/beads test failures (4 error handling tests)
+      - Fix TestGetTasks_ErrorPaths/empty_statuses - update error message expectations
+      - Fix TestGetTasks_ErrorPaths/invalid_status - update error message expectations
+      - Fix TestCreateTask_ErrorPaths/empty_title - update error message expectations
+      - Fix TestUpdateTask_ErrorPaths/empty_task_ID - update error message expectations
+      - Fix TestDeleteTask_ErrorPaths/empty_task_ID - update error message expectations
+      - Run tests to verify all fixes
+    - Fix internal/check test failures (5 tests)
+      - Update expected error messages to match actual implementation
+      - Update expected status levels (warn vs fail)
+      - Fix TestCheckFile_ErrorPaths/nonexistent_file
+      - Fix TestCheckFile_ErrorPaths/directory_instead_of_file
+      - Fix TestCheckFile_ErrorPaths/empty_path
+      - Fix TestCheckConfig_ErrorPaths/invalid_TOML_syntax
+      - Fix TestCheckEnv_ErrorPaths/missing_required_keys
+      - Run tests to verify all fixes
+    - Fix internal/config test failures (5 tests)
+      - Update expected error messages to match actual implementation
+      - Update validation order expectations
+      - Fix TestLoadConfig_ErrorPaths/missing_config_file
+      - Fix TestLoadConfig_ErrorPaths/invalid_TOML_syntax
+      - Fix TestLoadConfig_ErrorPaths/empty_config_file
+      - Fix TestLoadConfig_ErrorPaths/missing_required_fields
+      - Fix TestValidate_ErrorPaths/agent_with_empty_model
+      - Run tests to verify all fixes
+    - Fix internal/mcp test failures
+      - Review and fix any failing MCP client tests
+      - Update error message expectations
+      - Run tests to verify all fixes
+    - Fix internal/process test failures
+      - Review and fix any failing process manager tests
+      - Update error message expectations
+      - Run tests to verify all fixes
+    - Document any intentional behavior changes
+    - _Requirements: All_
+  
+  - [x] 30.0.3 Format all code (CRITICAL - 5 minutes)
+    - Run gofmt -w . on entire codebase (64 files need formatting)
+    - Verify gofmt -l . returns no files
+    - Commit formatted code
+    - Add pre-commit hook to enforce formatting
+    - _Requirements: All_
+  
+  - [ ] 30.0.4 Install and run linting tools (CRITICAL - 3 hours)
+    - Install golangci-lint
+      - macOS: brew install golangci-lint
+      - Linux: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh
+    - Run golangci-lint run ./...
+    - Review all findings
+    - Address all high-severity issues
+    - Document accepted warnings with justification
+    - Install gosec
+      - go install github.com/securego/gosec/v2/cmd/gosec@latest
+    - Run gosec ./...
+    - Review all findings
+    - Address all critical security issues
+    - Document accepted warnings with justification
+    - Add both tools to CI/CD pipeline
+    - _Requirements: 1.5, 4.3, All_
+  
+  ### Phase 30.1: Critical Coverage Gaps (Weeks 1-3)
+  
+  - [ ] 30.1 Add TUI integration tests (CRITICAL - 2 weeks)
+    - Current coverage: 4.1% | Target: 40%+ | Gap: 95.9% untested
+    - [x] 30.1.1 Set up TUI integration test framework
+      - Research bubbletea testing approaches
+      - Create mock terminal for testing
+      - Set up test fixtures and helpers
+      - Create test utilities for TUI components
+      - _Requirements: All_
+    
+    - [x] 30.1.2 Add wizard flow tests
+      - Test viewWelcome screen rendering
+      - Test viewChecking dependency check display
+      - Test viewAPIKeys input and validation
+      - Test viewGenerating config generation
+      - Test viewValidating validation step
+      - Test viewComplete screen
+      - Test runChecks function
+      - Test generateConfigFiles function
+      - Test runValidation function
+      - Test backupConfigFiles function
+      - Test validateAPIKey function
+      - Test generateConfigFromTemplate function
+      - Target: 60%+ coverage for wizard.go
+      - _Requirements: All_
+    
+    - [x] 30.1.3 Add TUI model and state tests
+      - Test Model initialization (NewModel function)
+      - Test Init method and initial commands
+      - Test refreshData method with mock clients
+      - Test state transitions between views
+      - Test error handling in model
+      - Target: 60%+ coverage for model.go
+      - _Requirements: All_
+    
+    - [x] 30.1.4 Add TUI rendering tests
+      - Test View method with different model states
+      - Test agent pane rendering (renderAgentPane)
+      - Test task pane rendering (renderTaskPane)
+      - Test log pane rendering (renderLogPane)
+      - Test footer rendering (renderFooter)
+      - Test layout calculations with different terminal sizes
+      - Test view composition
+      - Target: 60%+ coverage for view.go, agents.go, tasks.go, logs.go
+      - _Requirements: All_
+    
+    - [ ] 30.1.5 Add TUI interaction tests
+      - Test Update method with different message types
+      - Test keyboard event handling (q, r, t, arrow keys, etc.)
+      - Test modal interactions (open, close, navigation)
+      - Test navigation between panes
+      - Test search functionality
+      - Test state transitions
+      - Test error handling in TUI
+      - Target: 60%+ coverage for update.go, modals.go
+      - _Requirements: All_
+    
+    - [ ] 30.1.6 Add theme and styling tests
+      - Test theme initialization (NewTheme)
+      - Test theme application
+      - Test color calculations and gradients
+      - Test animation state updates
+      - Test performance monitoring display
+      - Target: 40%+ coverage for theme.go, animations.go, performance.go
+      - _Requirements: All_
+  
+  - [ ] 30.2 Add CLI command integration tests (HIGH - 1 week)
+    - Current coverage: 0% | Target: 50%+ | Gap: 100% untested
+    - [ ] 30.2.1 Set up CLI integration test framework
+      - Create cmd/cmd_test.go with shared test utilities
+      - Create test environment setup/teardown helpers
+      - Mock file system operations using temp directories
+      - Mock process execution where needed
+      - Set up test fixtures for CLI testing (sample configs, env files)
+      - Create helper functions for command testing
+      - _Requirements: All_
+    
+    - [ ] 30.2.2 Add check command tests
+      - Test asc check workflow with valid environment
+      - Test asc check with missing dependencies
+      - Test asc check with invalid config
+      - Test asc check with missing env file
+      - Test error reporting and exit codes
+      - Target: 50%+ coverage for cmd/check.go
+      - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6_
+    
+    - [ ] 30.2.3 Add services command tests
+      - Test asc services start workflow
+      - Test asc services stop workflow
+      - Test asc services status workflow
+      - Test service management with mock processes
+      - Test error handling
+      - Target: 50%+ coverage for cmd/services.go
+      - _Requirements: 6.1, 6.2, 6.3, 6.4_
+    
+    - [ ] 30.2.4 Add test command tests
+      - Test asc test workflow with mock beads and MCP
+      - Test E2E test execution
+      - Test result reporting
+      - Test timeout handling
+      - Test cleanup operations
+      - Target: 50%+ coverage for cmd/test.go
+      - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6_
+    
+    - [ ] 30.2.5 Add doctor command tests
+      - Test asc doctor workflow
+      - Test diagnostics execution
+      - Test report generation
+      - Test issue detection
+      - Target: 50%+ coverage for cmd/doctor.go
+      - _Requirements: All_
+    
+    - [ ] 30.2.6 Add cleanup command tests
+      - Test asc cleanup workflow
+      - Test log cleanup
+      - Test PID cleanup
+      - Test old file removal
+      - Target: 50%+ coverage for cmd/cleanup.go
+      - _Requirements: All_
+    
+    - [ ] 30.2.7 Add secrets command tests
+      - Test asc secrets init workflow
+      - Test asc secrets encrypt workflow
+      - Test asc secrets decrypt workflow
+      - Test encryption/decryption with age
+      - Test key management
+      - Target: 50%+ coverage for cmd/secrets.go
+      - _Requirements: 1.5, 4.3, All_
+    
+    - [ ] 30.2.8 Add down command tests
+      - Test asc down workflow with running processes
+      - Test graceful shutdown
+      - Test cleanup operations
+      - Test error handling with missing PIDs
+      - Target: 50%+ coverage for cmd/down.go
+      - _Requirements: 3.1, 3.2, 3.3, 3.4_
+    
+    - [ ] 30.2.9 Add up command tests (COMPLEX - requires mocking TUI)
+      - Test asc up workflow with mock TUI
+      - Test agent startup sequence
+      - Test TUI initialization
+      - Test error handling
+      - Note: This is complex due to TUI integration
+      - Target: 30%+ coverage for cmd/up.go
+      - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7_
+    
+    - [ ] 30.2.10 Add init command tests (COMPLEX - requires mocking wizard)
+      - Test asc init workflow with mock wizard
+      - Test flag parsing and validation
+      - Test wizard flow integration
+      - Test config file generation
+      - Test error handling and user feedback
+      - Note: This is complex due to wizard integration
+      - Target: 30%+ coverage for cmd/init.go
+      - _Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7_
+  
+  ### Phase 30.2: High Priority Coverage (Week 4)
+  
+  - [ ] 30.3 Fix secrets tests and improve coverage (HIGH - 4 hours)
+    - Current coverage: 47.4% | Target: 70%+ | Gap: 22.6%
+    - Note: age binary is already installed and tests are passing
+    - Add tests for key rotation functionality
+    - Add tests for public key extraction
+    - Add tests for error handling edge cases
+    - Add tests for key file management
+    - Add tests for permission handling
+    - Add tests for concurrent encryption/decryption
+    - Target: 70%+ coverage for internal/secrets
+    - _Requirements: 1.5, 4.3, All_
+  
+  - [ ] 30.4 Improve doctor coverage (HIGH - 3 days)
+    - Current coverage: 69.8% | Target: 80%+ | Gap: 10.2%
+    - checkAgents function: 26.1% (CRITICAL)
+    - [ ] 30.4.1 Add tests for checkAgents function
+      - Test with running agents
+      - Test with stopped agents
+      - Test with crashed agents
+      - Test with missing agents
+      - Test agent health detection
+      - Target: 80%+ coverage (currently 26.1%)
+      - _Requirements: All_
+    
+    - [ ] 30.4.2 Add tests for report generation
+      - Test generateReport function
+      - Test formatIssue function
+      - Test formatRemediation function
+      - Test report output formatting
+      - Test various issue types
+      - _Requirements: All_
+    
+    - [ ] 30.4.3 Improve coverage for other doctor functions
+      - Improve checkConfiguration to 80%+
+      - Improve checkResources to 80%+
+      - Add edge case tests
+      - Test error handling paths
+      - Target: 80%+ overall coverage for internal/doctor
+      - _Requirements: All_
+  
+  - [ ] 30.5 Improve logger coverage (HIGH - 1 day)
+    - Current coverage: 67.7% | Target: 75%+ | Gap: 7.3%
+    - [ ] 30.5.1 Add log rotation tests
+      - Test rotation at size limit
+      - Test rotation under load
+      - Test cleanup of old files
+      - Test rotation with concurrent writes
+      - _Requirements: All_
+    
+    - [ ] 30.5.2 Add concurrent logging tests
+      - Test multiple goroutines logging
+      - Test race conditions
+      - Test log ordering
+      - Test thread safety
+      - _Requirements: All_
+    
+    - [ ] 30.5.3 Add structured logging tests
+      - Test complex object logging
+      - Test context fields
+      - Test log levels
+      - Test log filtering
+      - Target: 75%+ coverage for internal/logger
+      - _Requirements: All_
+  
+  ### Phase 30.3: Medium Priority Issues (Week 5)
+  
+  - [ ] 30.6 Improve config coverage (MEDIUM - 4 hours)
+    - Current coverage: 76.6% | Target: 80%+ | Gap: 3.4%
+    - Add tests for GetDefaultConfigPath
+    - Add tests for GetDefaultEnvPath
+    - Add tests for GetDefaultPIDDir
+    - Add tests for GetDefaultLogDir
+    - Improve watcher Start function coverage to 80%+
+    - Improve stopAgent coverage to 80%+
+    - Improve SaveTemplate coverage to 80%+
+    - Improve SaveCustomTemplate coverage to 80%+
+    - Test edge cases and error paths
+    - Target: 80%+ coverage for internal/config
+    - _Requirements: All_
+  
+  - [ ] 30.7 Add CHANGELOG and versioning documentation (MEDIUM - 3 hours)
+    - [ ] 30.7.1 Create CHANGELOG.md
+      - Follow Keep a Changelog format
+      - Document all releases to date
+      - Add unreleased section
+      - Document breaking changes
+      - _Requirements: All_
+    
+    - [ ] 30.7.2 Create VERSIONING.md
+      - Document SemVer usage
+      - Document release process
+      - Document version numbering rules
+      - Document compatibility guarantees
+      - _Requirements: All_
+    
+    - [ ] 30.7.3 Update go.mod version
+      - Change from go 1.25.4 to go 1.21
+      - Run go mod tidy
+      - Verify build still works
+      - Test with Go 1.21 and 1.22+
+      - _Requirements: All_
+  
+  - [ ] 30.8 Add documentation automation (MEDIUM - 8 hours)
+    - [ ] 30.8.1 Add link validation
+      - Install markdown-link-check or similar tool
+      - Create link validation script
+      - Add to CI/CD pipeline
+      - Fix any broken links found
+      - _Requirements: All_
+    
+    - [ ] 30.8.2 Add example testing
+      - Extract code examples from documentation
+      - Create test script to compile/run examples
+      - Add to CI/CD pipeline
+      - Fix any broken examples
+      - _Requirements: All_
+  
+  - [ ] 30.9 Install and configure Python linters (MEDIUM - 2 hours)
+    - [ ] 30.9.1 Install and run pylint
+      - Install pylint (pip install pylint)
+      - Run pylint on agent/*.py
+      - Address high-severity issues
+      - Document accepted warnings
+      - Add to CI/CD pipeline
+      - _Requirements: All_
+    
+    - [ ] 30.9.2 Install and run flake8
+      - Install flake8 (pip install flake8)
+      - Run flake8 on agent/
+      - Address high-severity issues
+      - Configure flake8 rules
+      - Add to CI/CD pipeline
+      - _Requirements: All_
+  
+  ### Phase 30.4: Low Priority Issues (Week 6+)
+  
+  - [ ] 30.10 Add screenshots to README (LOW - 2 hours)
+    - Capture screenshots of TUI main dashboard
+    - Capture screenshots of wizard flow
+    - Capture screenshots of modal dialogs
+    - Capture screenshots of error states
+    - Add screenshots to README in appropriate sections
+    - Optimize image sizes for web
+    - Add alt text for accessibility
+    - _Requirements: All_
+  
+  - [ ] 30.11 Fix development environment security issues (LOW - 1 hour)
+    - Fix .env file permissions (chmod 600 .env)
+    - Remove .env from git tracking (git rm --cached .env)
+    - Update .gitignore to exclude .env
+    - Fix log directory permissions
+    - Fix PID directory permissions
+    - Document security checklist for production
+    - _Requirements: 1.5, 4.3, All_
+  
+  - [ ] 30.12 Install Docker for optional features (LOW - 30 minutes)
+    - Install Docker Desktop
+    - Verify Docker installation
+    - Update documentation with Docker setup
+    - Test container-based features
+    - Document Docker as optional dependency
+    - _Requirements: All_
+  
+  - [ ] 30.13 Update dependencies (LOW - 4 hours)
+    - Review 20 available dependency updates
+    - Test updates in staging environment
+    - Apply safe minor/patch updates
+    - Run full test suite after updates
+    - Document any breaking changes
+    - Update go.mod and go.sum
+    - _Requirements: All_
+
+## Summary of Critical Issues to Address
+
+Based on Phase 29 validation, the following critical issues must be fixed before release:
+
+### Immediate Blockers (Phase 30.0 - Days 1-2)
+1. **30.0.1** Fix 3 compilation errors (3 hours)
+2. **30.0.2** Fix 10 test assertion failures (4 hours)
+3. **30.0.3** Format 64 files with gofmt (5 minutes)
+4. **30.0.4** Install and run linting tools (3 hours)
+
+### Critical Coverage Gaps (Phase 30.1 - Weeks 1-3)
+5. **30.1** Add TUI integration tests - 4.1% → 40%+ coverage (2 weeks)
+6. **30.2** Add CLI integration tests - 0% → 60%+ coverage (2 weeks)
+
+### High Priority Coverage (Phase 30.2 - Week 4)
+7. **30.3** Fix secrets tests - 47.4% → 80%+ coverage (1 day)
+8. **30.4** Improve doctor coverage - 69.8% → 80%+ coverage (3 days)
+9. **30.5** Improve logger coverage - 67.7% → 80%+ coverage (2 days)
+
+**Total Estimated Effort:**
+- Minimum for Beta Release: 1-2 days (Phase 30.0 remaining tasks)
+- Recommended for Production: 2-3 weeks (Phase 30.0 + 30.1 + 30.2)
+- Full Quality Release: 4-5 weeks (All phases)
+
+**Current Status (Updated):**
+- Phase 30.0 (Immediate Blockers): 50% complete (2/4 tasks done)
+  - ✅ 30.0.1: Compilation errors fixed
+  - ❌ 30.0.2: Test assertion failures remain (beads, check, config, mcp, process)
+  - ✅ 30.0.3: Code formatting complete
+  - ❌ 30.0.4: Linting tools need installation and execution
+- Phase 30.1 (Critical Coverage - TUI): 40% complete (2/6 tasks done)
+  - ✅ 30.1.1: Test framework set up
+  - ✅ 30.1.2: Wizard tests complete (60%+ coverage achieved)
+  - ❌ 30.1.3-30.1.6: Model, rendering, interaction, and theme tests needed
+  - Current TUI coverage: 22.3% (target: 40%+)
+- Phase 30.2 (Critical Coverage - CLI): 0% complete (0/10 tasks done)
+  - Current CMD coverage: 0% (target: 50%+)
+- Phase 30.3-30.6 (High Priority): 0% complete
+- Phase 30.7-30.13 (Medium/Low Priority): Partially complete
+
+**Next Recommended Tasks:**
+1. Complete 30.0.2: Fix all test assertion failures (4 hours)
+2. Complete 30.0.4: Install and run linting tools (3 hours)
+3. Start 30.1.3: Add TUI model and state tests (2 days)
+4. Start 30.2.1: Set up CLI test framework (1 day)
+
