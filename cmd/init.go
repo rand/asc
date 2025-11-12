@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	"github.com/yourusername/asc/internal/config"
-	"github.com/yourusername/asc/internal/tui"
+	"github.com/rand/asc/internal/config"
+	"github.com/rand/asc/internal/tui"
 )
 
 var (

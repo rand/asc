@@ -12,9 +12,9 @@ import (
 	"time"
 
 	"github.com/spf13/viper"
-	"github.com/yourusername/asc/internal/check"
-	"github.com/yourusername/asc/internal/logger"
-	"github.com/yourusername/asc/internal/process"
+	"github.com/rand/asc/internal/check"
+	"github.com/rand/asc/internal/logger"
+	"github.com/rand/asc/internal/process"
 )
 
 // IssueSeverity represents the severity level of a detected issue

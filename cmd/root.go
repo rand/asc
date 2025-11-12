@@ -6,7 +6,7 @@ import (
 	_ "github.com/charmbracelet/lipgloss"
 	"github.com/spf13/cobra"
 	_ "github.com/spf13/viper"
-	"github.com/yourusername/asc/internal/logger"
+	"github.com/rand/asc/internal/logger"
 )
 
 var (

@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yourusername/asc/internal/mcp"
+	"github.com/rand/asc/internal/mcp"
 )
 
 // TestRenderLogPane tests the renderLogPane method

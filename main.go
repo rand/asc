@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/yourusername/asc/cmd"
-	"github.com/yourusername/asc/internal/logger"
+	"github.com/rand/asc/cmd"
+	"github.com/rand/asc/internal/logger"
 )
 
 func main() {

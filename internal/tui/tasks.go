@@ -6,7 +6,7 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/yourusername/asc/internal/beads"
+	"github.com/rand/asc/internal/beads"
 )
 
 // Task status icons

@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"github.com/yourusername/asc/internal/beads"
-	"github.com/yourusername/asc/internal/config"
-	"github.com/yourusername/asc/internal/mcp"
+	"github.com/rand/asc/internal/beads"
+	"github.com/rand/asc/internal/config"
+	"github.com/rand/asc/internal/mcp"
 )
 
 var testCmd = &cobra.Command{

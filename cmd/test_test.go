@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yourusername/asc/internal/beads"
-	"github.com/yourusername/asc/internal/mcp"
+	"github.com/rand/asc/internal/beads"
+	"github.com/rand/asc/internal/mcp"
 )
 
 // Mock BeadsClient for testing

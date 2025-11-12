@@ -8,9 +8,9 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/yourusername/asc/internal/beads"
-	"github.com/yourusername/asc/internal/logger"
-	"github.com/yourusername/asc/internal/mcp"
+	"github.com/rand/asc/internal/beads"
+	"github.com/rand/asc/internal/logger"
+	"github.com/rand/asc/internal/mcp"
 )
 
 // refreshDataMsg is sent when data refresh is complete

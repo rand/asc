@@ -21,7 +21,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/yourusername/asc/internal/logger"
+	"github.com/rand/asc/internal/logger"
 )
 
 // BeadsClient defines the interface for interacting with the beads task database.

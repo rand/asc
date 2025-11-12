@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/yourusername/asc/internal/secrets"
+	"github.com/rand/asc/internal/secrets"
 )
 
 var secretsCmd = &cobra.Command{

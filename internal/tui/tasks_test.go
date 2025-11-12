@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/yourusername/asc/internal/beads"
+	"github.com/rand/asc/internal/beads"
 )
 
 // TestRenderTaskPane tests the renderTaskPane method

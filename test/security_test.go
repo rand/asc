@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/yourusername/asc/internal/config"
-	"github.com/yourusername/asc/internal/secrets"
+	"github.com/rand/asc/internal/config"
+	"github.com/rand/asc/internal/secrets"
 )
 
 // TestAPIKeyHandling tests secure API key storage and handling

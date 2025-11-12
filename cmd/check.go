@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/yourusername/asc/internal/check"
+	"github.com/rand/asc/internal/check"
 )
 
 // osExit is a variable that can be mocked in tests

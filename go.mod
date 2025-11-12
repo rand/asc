@@ -1,4 +1,4 @@
-module github.com/yourusername/asc
+module github.com/rand/asc
 
 go 1.24.2
 

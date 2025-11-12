@@ -7,9 +7,9 @@ import (
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/yourusername/asc/internal/check"
-	"github.com/yourusername/asc/internal/config"
-	"github.com/yourusername/asc/internal/secrets"
+	"github.com/rand/asc/internal/check"
+	"github.com/rand/asc/internal/config"
+	"github.com/rand/asc/internal/secrets"
 )
 
 // TestWizardModel_ViewWelcome tests the welcome screen rendering

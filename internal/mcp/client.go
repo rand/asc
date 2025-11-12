@@ -22,7 +22,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/yourusername/asc/internal/logger"
+	"github.com/rand/asc/internal/logger"
 )
 
 // MessageType represents the type of MCP message.

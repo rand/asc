@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yourusername/asc/internal/config"
-	"github.com/yourusername/asc/internal/mcp"
-	"github.com/yourusername/asc/internal/process"
+	"github.com/rand/asc/internal/config"
+	"github.com/rand/asc/internal/mcp"
+	"github.com/rand/asc/internal/process"
 )
 
 // Mock MCP Client

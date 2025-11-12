@@ -6,7 +6,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/yourusername/asc/internal/mcp"
+	"github.com/rand/asc/internal/mcp"
 )
 
 // refreshDataCmd returns a command that refreshes all data sources

@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yourusername/asc/internal/beads"
-	"github.com/yourusername/asc/internal/config"
-	"github.com/yourusername/asc/internal/mcp"
+	"github.com/rand/asc/internal/beads"
+	"github.com/rand/asc/internal/config"
+	"github.com/rand/asc/internal/mcp"
 )
 
 // TestNewModel tests the NewModel constructor

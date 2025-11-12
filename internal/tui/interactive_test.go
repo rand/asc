@@ -7,10 +7,10 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/yourusername/asc/internal/beads"
-	"github.com/yourusername/asc/internal/config"
-	"github.com/yourusername/asc/internal/mcp"
-	"github.com/yourusername/asc/internal/process"
+	"github.com/rand/asc/internal/beads"
+	"github.com/rand/asc/internal/config"
+	"github.com/rand/asc/internal/mcp"
+	"github.com/rand/asc/internal/process"
 )
 
 // mockBeadsClient is a mock implementation of BeadsClient for testing

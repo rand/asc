@@ -9,14 +9,14 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/spf13/cobra"
 
-	"github.com/yourusername/asc/internal/beads"
-	"github.com/yourusername/asc/internal/check"
-	"github.com/yourusername/asc/internal/config"
-	"github.com/yourusername/asc/internal/logger"
-	"github.com/yourusername/asc/internal/mcp"
-	"github.com/yourusername/asc/internal/process"
-	"github.com/yourusername/asc/internal/secrets"
-	"github.com/yourusername/asc/internal/tui"
+	"github.com/rand/asc/internal/beads"
+	"github.com/rand/asc/internal/check"
+	"github.com/rand/asc/internal/config"
+	"github.com/rand/asc/internal/logger"
+	"github.com/rand/asc/internal/mcp"
+	"github.com/rand/asc/internal/process"
+	"github.com/rand/asc/internal/secrets"
+	"github.com/rand/asc/internal/tui"
 )
 
 var (

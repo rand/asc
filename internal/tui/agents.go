@@ -6,7 +6,7 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/yourusername/asc/internal/mcp"
+	"github.com/rand/asc/internal/mcp"
 )
 
 // Agent status icons

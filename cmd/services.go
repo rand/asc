@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/yourusername/asc/internal/config"
-	"github.com/yourusername/asc/internal/process"
+	"github.com/rand/asc/internal/config"
+	"github.com/rand/asc/internal/process"
 )
 
 // osExit is a variable that can be mocked in tests (shared with other cmd files)

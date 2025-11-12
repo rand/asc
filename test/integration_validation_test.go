@@ -11,9 +11,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yourusername/asc/internal/config"
-	"github.com/yourusername/asc/internal/process"
-	"github.com/yourusername/asc/internal/secrets"
+	"github.com/rand/asc/internal/config"
+	"github.com/rand/asc/internal/process"
+	"github.com/rand/asc/internal/secrets"
 )
 
 // TestIntegrationValidation_InitWorkflow tests the complete asc init workflow

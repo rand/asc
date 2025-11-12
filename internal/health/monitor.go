@@ -22,10 +22,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/yourusername/asc/internal/config"
-	"github.com/yourusername/asc/internal/logger"
-	"github.com/yourusername/asc/internal/mcp"
-	"github.com/yourusername/asc/internal/process"
+	"github.com/rand/asc/internal/config"
+	"github.com/rand/asc/internal/logger"
+	"github.com/rand/asc/internal/mcp"
+	"github.com/rand/asc/internal/process"
 )
 
 // HealthIssueType represents the type of health issue detected

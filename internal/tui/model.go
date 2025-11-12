@@ -7,12 +7,12 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/yourusername/asc/internal/beads"
-	"github.com/yourusername/asc/internal/config"
-	"github.com/yourusername/asc/internal/health"
-	"github.com/yourusername/asc/internal/logger"
-	"github.com/yourusername/asc/internal/mcp"
-	"github.com/yourusername/asc/internal/process"
+	"github.com/rand/asc/internal/beads"
+	"github.com/rand/asc/internal/config"
+	"github.com/rand/asc/internal/health"
+	"github.com/rand/asc/internal/logger"
+	"github.com/rand/asc/internal/mcp"
+	"github.com/rand/asc/internal/process"
 )
 
 // Model represents the TUI application state

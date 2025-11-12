@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/spf13/cobra"
-	"github.com/yourusername/asc/internal/config"
+	"github.com/rand/asc/internal/config"
 )
 
 // TestInitCommand tests the basic init command structure

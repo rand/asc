@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yourusername/asc/internal/process"
+	"github.com/rand/asc/internal/process"
 )
 
 func TestNewDoctor(t *testing.T) {

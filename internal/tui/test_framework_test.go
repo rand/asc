@@ -7,8 +7,8 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/yourusername/asc/internal/beads"
-	"github.com/yourusername/asc/internal/mcp"
+	"github.com/rand/asc/internal/beads"
+	"github.com/rand/asc/internal/mcp"
 )
 
 // TestFrameworkCreation tests creating a new test framework

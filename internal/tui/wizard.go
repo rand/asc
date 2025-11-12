@@ -10,9 +10,9 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/yourusername/asc/internal/check"
-	"github.com/yourusername/asc/internal/config"
-	"github.com/yourusername/asc/internal/secrets"
+	"github.com/rand/asc/internal/check"
+	"github.com/rand/asc/internal/config"
+	"github.com/rand/asc/internal/secrets"
 )
 
 // wizardStep represents the current step in the wizard

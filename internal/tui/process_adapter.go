@@ -1,8 +1,8 @@
 package tui
 
 import (
-	"github.com/yourusername/asc/internal/config"
-	"github.com/yourusername/asc/internal/process"
+	"github.com/rand/asc/internal/config"
+	"github.com/rand/asc/internal/process"
 )
 
 // processManagerAdapter adapts process.ProcessManager to config.ProcessManager

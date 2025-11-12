@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"github.com/yourusername/asc/internal/logger"
+	"github.com/rand/asc/internal/logger"
 )
 
 var (

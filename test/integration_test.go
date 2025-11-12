@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yourusername/asc/internal/beads"
-	"github.com/yourusername/asc/internal/check"
-	"github.com/yourusername/asc/internal/config"
-	"github.com/yourusername/asc/internal/process"
+	"github.com/rand/asc/internal/beads"
+	"github.com/rand/asc/internal/check"
+	"github.com/rand/asc/internal/config"
+	"github.com/rand/asc/internal/process"
 )
 
 // TestProcessManagerIntegration tests the full lifecycle of process management

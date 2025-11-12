@@ -10,9 +10,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/yourusername/asc/internal/config"
-	"github.com/yourusername/asc/internal/logger"
-	"github.com/yourusername/asc/internal/secrets"
+	"github.com/rand/asc/internal/config"
+	"github.com/rand/asc/internal/logger"
+	"github.com/rand/asc/internal/secrets"
 )
 
 // TestSecurityValidation_NoSecretsInLogs validates that no secrets appear in log files

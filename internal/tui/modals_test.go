@@ -6,7 +6,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 
-	"github.com/yourusername/asc/internal/beads"
+	"github.com/rand/asc/internal/beads"
 )
 
 // TestRenderTaskDetailModal tests task detail modal rendering

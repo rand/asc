@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/spf13/cobra"
-	"github.com/yourusername/asc/internal/process"
+	"github.com/rand/asc/internal/process"
 )
 
 var downCmd = &cobra.Command{
