@@ -32,13 +32,20 @@ func TestDoctorCommand(t *testing.T) {
 	os.Setenv("HOME", env.TempDir)
 	defer os.Setenv("HOME", oldHome)
 
+	// Create mock binaries
+	mockBinDir := SetupMockBinaries(t, []string{"git", "python3", "uv", "bd", "docker", "age"})
+
 	// Capture output
 	capture := NewCaptureOutput()
 	capture.Start()
 
-	// Run doctor command
-	exitCode, exitCalled := RunWithExitCapture(func() {
-		doctorCmd.Run(doctorCmd, []string{})
+	// Run doctor command with mock PATH
+	var exitCode int
+	var exitCalled bool
+	WithMockPath(t, mockBinDir, func() {
+		exitCode, exitCalled = RunWithExitCapture(func() {
+			doctorCmd.Run(doctorCmd, []string{})
+		})
 	})
 
 	capture.Stop()
