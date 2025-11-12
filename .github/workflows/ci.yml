@@ -27,19 +27,6 @@ jobs:
         go mod download
         go mod verify
 
-    - name: Debug module structure
-      run: |
-        echo "=== Current directory ==="
-        pwd
-        echo "=== Module info ==="
-        go list -m
-        echo "=== All packages ==="
-        go list ./...
-        echo "=== Check internal/secrets ==="
-        ls -la internal/secrets/
-        echo "=== Go env ==="
-        go env GOMOD GOWORK
-
     - name: Build
       run: go build -v ./...
 
