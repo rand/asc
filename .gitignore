@@ -31,7 +31,7 @@ Thumbs.db
 .env.*
 !.env.example
 *.key
-secrets/
+/secrets/
 .secrets/
 
 # Age encrypted secrets (these are safe to commit)
