@@ -35,7 +35,8 @@ func runCleanup(cmd *cobra.Command, args []string) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to get home directory: %v\n", err)
-		os.Exit(1)
+		osExit(1)
+		return
 	}
 
 	logsDir := filepath.Join(homeDir, ".asc", "logs")
@@ -51,7 +52,8 @@ func runCleanup(cmd *cobra.Command, args []string) {
 	maxAge := time.Duration(cleanupDays) * 24 * time.Hour
 	if err := logger.CleanupOldLogs(logsDir, maxAge); err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to cleanup logs: %v\n", err)
-		os.Exit(1)
+		osExit(1)
+		return
 	}
 
 	fmt.Println("✓ Log cleanup completed")
