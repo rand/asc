@@ -7,9 +7,9 @@ import (
 )
 
 var (
-	templateFlag string
+	templateFlag      string
 	listTemplatesFlag bool
-	saveTemplateFlag string
+	saveTemplateFlag  string
 )
 
 var initCmd = &cobra.Command{

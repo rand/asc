@@ -7,6 +7,7 @@ Get up and running with asc development in 5 minutes.
 - Go 1.21+ installed
 - Git installed
 - Make installed
+- Docker (optional, for containerized features)
 
 ## Setup (First Time)
 
@@ -196,6 +197,25 @@ dlv debug . -- up
 5. **Read existing code** - Learn the patterns
 6. **Ask questions** - Use GitHub Discussions
 
+## Optional: Docker Setup
+
+Docker is optional but useful for testing containerized features:
+
+```bash
+# macOS
+brew install --cask docker
+open -a Docker
+
+# Linux
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+
+# Verify
+docker --version
+```
+
+See [README.md#docker-setup](README.md#docker-setup) for detailed instructions.
+
 ## Common Issues
 
 ### "Tests failing"
@@ -221,6 +241,13 @@ golangci-lint run --fix ./...
 ### "Pre-commit hook not running"
 ```bash
 make setup-hooks
+```
+
+### "Docker not found"
+```bash
+# Install Docker (optional)
+brew install --cask docker  # macOS
+# or see README.md#docker-setup for other platforms
 ```
 
 ## Next Steps

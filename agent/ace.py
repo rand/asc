@@ -105,9 +105,9 @@ class ACEPlaybook:
             self.logger.info(f"Reflecting on task {task.id}")
             
             # Generate reflection prompt
-            reflection_prompt = self._generate_reflection_prompt(
-                task, llm_response, outcome
-            )
+            # reflection_prompt = self._generate_reflection_prompt(
+            #     task, llm_response, outcome
+            # )
             
             # For now, extract lessons from the task execution
             # In a full implementation, we'd call the LLM again for reflection

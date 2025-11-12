@@ -284,3 +284,178 @@ beads_db_path = "./test-repo"
 		t.Errorf("LoadCustomTemplateByName() should return error for non-existent template")
 	}
 }
+
+func TestSaveTemplate_DirectoryCreation(t *testing.T) {
+	tmpDir := t.TempDir()
+	
+	// Create a test template
+	testTemplate := &Template{
+		Name:        "test-template",
+		Description: "Test template",
+		Content:     "[core]\nbeads_db_path = \"./test-repo\"\n",
+	}
+	
+	// Save to a nested directory that doesn't exist
+	nestedPath := filepath.Join(tmpDir, "nested", "dir", "template.toml")
+	err := SaveTemplate(testTemplate, nestedPath)
+	if err != nil {
+		t.Fatalf("SaveTemplate() error = %v", err)
+	}
+	
+	// Verify file exists
+	if _, err := os.Stat(nestedPath); os.IsNotExist(err) {
+		t.Errorf("SaveTemplate() did not create file in nested directory")
+	}
+	
+	// Verify content
+	content, err := os.ReadFile(nestedPath)
+	if err != nil {
+		t.Fatalf("Failed to read saved template: %v", err)
+	}
+	
+	if string(content) != testTemplate.Content {
+		t.Errorf("SaveTemplate() content mismatch")
+	}
+}
+
+func TestSaveTemplate_WriteError(t *testing.T) {
+	// Try to save to a read-only directory (simulate write error)
+	tmpDir := t.TempDir()
+	readOnlyDir := filepath.Join(tmpDir, "readonly")
+	err := os.MkdirAll(readOnlyDir, 0444) // Read-only
+	if err != nil {
+		t.Fatalf("Failed to create read-only directory: %v", err)
+	}
+	
+	testTemplate := &Template{
+		Name:        "test-template",
+		Description: "Test template",
+		Content:     "[core]\nbeads_db_path = \"./test-repo\"\n",
+	}
+	
+	templatePath := filepath.Join(readOnlyDir, "template.toml")
+	err = SaveTemplate(testTemplate, templatePath)
+	if err == nil {
+		t.Errorf("SaveTemplate() should return error for read-only directory")
+	}
+}
+
+func TestSaveCustomTemplate_MissingConfig(t *testing.T) {
+	tmpDir := t.TempDir()
+	
+	// Override home directory for testing
+	originalHome := os.Getenv("HOME")
+	os.Setenv("HOME", tmpDir)
+	defer os.Setenv("HOME", originalHome)
+	
+	// Try to save from non-existent config
+	err := SaveCustomTemplate("/nonexistent/config.toml", "test-template")
+	if err == nil {
+		t.Errorf("SaveCustomTemplate() should return error for non-existent config")
+	}
+}
+
+func TestSaveCustomTemplate_DirectoryCreation(t *testing.T) {
+	tmpDir := t.TempDir()
+	
+	// Override home directory for testing
+	originalHome := os.Getenv("HOME")
+	os.Setenv("HOME", tmpDir)
+	defer os.Setenv("HOME", originalHome)
+	
+	// Create a temporary config file
+	configPath := filepath.Join(tmpDir, "asc.toml")
+	configContent := `[core]
+beads_db_path = "./test-repo"
+`
+	err := os.WriteFile(configPath, []byte(configContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to create test config: %v", err)
+	}
+	
+	// Save custom template (templates directory doesn't exist yet)
+	err = SaveCustomTemplate(configPath, "my-template")
+	if err != nil {
+		t.Fatalf("SaveCustomTemplate() error = %v", err)
+	}
+	
+	// Verify templates directory was created
+	templatesDir := filepath.Join(tmpDir, ".asc", "templates")
+	if _, err := os.Stat(templatesDir); os.IsNotExist(err) {
+		t.Errorf("SaveCustomTemplate() did not create templates directory")
+	}
+	
+	// Verify template file exists
+	templatePath := filepath.Join(templatesDir, "my-template.toml")
+	if _, err := os.Stat(templatePath); os.IsNotExist(err) {
+		t.Errorf("SaveCustomTemplate() did not create template file")
+	}
+}
+
+func TestLoadCustomTemplate_NonExistent(t *testing.T) {
+	_, err := LoadCustomTemplate("/nonexistent/template.toml")
+	if err == nil {
+		t.Errorf("LoadCustomTemplate() should return error for non-existent file")
+	}
+}
+
+func TestListCustomTemplates_WithNonTomlFiles(t *testing.T) {
+	tmpDir := t.TempDir()
+	
+	// Override home directory for testing
+	originalHome := os.Getenv("HOME")
+	os.Setenv("HOME", tmpDir)
+	defer os.Setenv("HOME", originalHome)
+	
+	// Create templates directory
+	templatesDir := filepath.Join(tmpDir, ".asc", "templates")
+	err := os.MkdirAll(templatesDir, 0755)
+	if err != nil {
+		t.Fatalf("Failed to create templates directory: %v", err)
+	}
+	
+	// Add TOML templates
+	tomlFiles := []string{"template1.toml", "template2.toml"}
+	for _, name := range tomlFiles {
+		templatePath := filepath.Join(templatesDir, name)
+		err := os.WriteFile(templatePath, []byte("test content"), 0644)
+		if err != nil {
+			t.Fatalf("Failed to create test template: %v", err)
+		}
+	}
+	
+	// Add non-TOML files (should be ignored)
+	nonTomlFiles := []string{"readme.txt", "config.json", "script.sh"}
+	for _, name := range nonTomlFiles {
+		filePath := filepath.Join(templatesDir, name)
+		err := os.WriteFile(filePath, []byte("test content"), 0644)
+		if err != nil {
+			t.Fatalf("Failed to create test file: %v", err)
+		}
+	}
+	
+	// Add a subdirectory (should be ignored)
+	subDir := filepath.Join(templatesDir, "subdir")
+	err = os.MkdirAll(subDir, 0755)
+	if err != nil {
+		t.Fatalf("Failed to create subdirectory: %v", err)
+	}
+	
+	// List templates
+	templates, err := ListCustomTemplates()
+	if err != nil {
+		t.Fatalf("ListCustomTemplates() error = %v", err)
+	}
+	
+	// Should only return TOML files
+	if len(templates) != len(tomlFiles) {
+		t.Errorf("ListCustomTemplates() returned %d templates, want %d", len(templates), len(tomlFiles))
+	}
+	
+	// Verify template names don't include .toml extension
+	for _, tmpl := range templates {
+		if contains(tmpl.Name, ".toml") {
+			t.Errorf("Template name should not include .toml extension: %s", tmpl.Name)
+		}
+	}
+}

@@ -146,18 +146,18 @@ func (c *CaptureOutput) Stop() {
 	if c.wErr != nil {
 		c.wErr.Close()
 	}
-	
+
 	// Wait for copy to complete
 	<-c.doneChan
 	<-c.doneChan
-	
+
 	if c.rOut != nil {
 		c.rOut.Close()
 	}
 	if c.rErr != nil {
 		c.rErr.Close()
 	}
-	
+
 	if c.oldOut != nil {
 		os.Stdout = c.oldOut
 	}
@@ -344,7 +344,7 @@ func ChangeToTempDir(t *testing.T, dir string) func() {
 func RunWithExitCapture(fn func()) (exitCode int, exitCalled bool) {
 	exitCode = -1
 	exitCalled = false
-	
+
 	// Recover from os.Exit panic
 	defer func() {
 		if r := recover(); r != nil {
@@ -357,7 +357,7 @@ func RunWithExitCapture(fn func()) (exitCode int, exitCalled bool) {
 			panic(r)
 		}
 	}()
-	
+
 	// Wrap os.Exit to capture the exit code
 	oldOsExit := osExit
 	osExit = func(code int) {
@@ -366,7 +366,7 @@ func RunWithExitCapture(fn func()) (exitCode int, exitCalled bool) {
 		panic("os.Exit called") // Use panic to stop execution
 	}
 	defer func() { osExit = oldOsExit }()
-	
+
 	fn()
 	return
 }

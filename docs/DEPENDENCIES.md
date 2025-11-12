@@ -87,6 +87,85 @@ This document provides a comprehensive overview of all dependencies used in the 
 
 **Non-Critical Dependencies**: Allow patch updates automatically.
 
+## External System Dependencies
+
+### Required System Tools
+
+| Tool | Purpose | Installation | Update Policy |
+|------|---------|--------------|---------------|
+| `git` | Version control for beads repository | System package manager | System managed |
+| `python3` | Agent runtime environment | System package manager | Python 3.10+ required |
+| `bd` (beads CLI) | Task database management | `pip install beads` | Follow beads releases |
+
+### Optional System Tools
+
+| Tool | Purpose | Installation | Update Policy |
+|------|---------|--------------|---------------|
+| `docker` | Containerized agent execution | See [Docker Setup](#docker-setup) | System managed |
+| `uv` | Fast Python package manager | `pip install uv` | Follow uv releases |
+| `age` | Secrets encryption | System package manager | System managed |
+
+### Docker Setup
+
+**Purpose**: Docker enables containerized agent execution, providing isolation and reproducible environments.
+
+**Status**: Optional - Not required for basic operation
+
+**Installation**:
+
+**macOS**:
+```bash
+brew install --cask docker
+open -a Docker
+```
+
+**Linux (Ubuntu/Debian)**:
+```bash
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+sudo usermod -aG docker $USER
+```
+
+**Linux (Fedora/RHEL)**:
+```bash
+sudo dnf install docker
+sudo systemctl start docker
+sudo systemctl enable docker
+sudo usermod -aG docker $USER
+```
+
+**Windows**:
+Download from https://www.docker.com/products/docker-desktop
+
+**Verification**:
+```bash
+docker --version
+docker ps
+```
+
+**Integration with asc**:
+- Checked during `asc check` command
+- Shows as ⚠ WARN if not installed (optional)
+- Shows as ✓ PASS if installed and running
+- Future features may leverage Docker for:
+  - Isolated agent environments
+  - Container-based agent templates
+  - Reproducible agent execution
+  - Integration with container orchestration
+
+**Update Policy**: System managed - Follow Docker's release schedule
+
+**Security Considerations**:
+- Ensure Docker daemon is properly secured
+- Use Docker Content Trust for image verification
+- Regularly update Docker to latest stable version
+- Follow Docker security best practices
+
+**Troubleshooting**:
+- **Command not found**: Ensure Docker is in PATH and daemon is running
+- **Permission denied**: Add user to docker group (Linux)
+- **Daemon not running**: Start Docker Desktop (macOS/Windows) or `systemctl start docker` (Linux)
+
 ## Python Dependencies
 
 ### Agent Runtime Dependencies

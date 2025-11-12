@@ -8,7 +8,7 @@ import os
 import time
 import logging
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional, Any
+from typing import Dict, Optional, Any
 from dataclasses import dataclass
 
 
@@ -237,7 +237,11 @@ class GeminiClient(LLMClient):
                 tokens_used=estimated_tokens,
                 cost_usd=cost,
                 model=self.model,
-                finish_reason=response.candidates[0].finish_reason.name if response.candidates else "complete"
+                finish_reason=(
+                    response.candidates[0].finish_reason.name
+                    if response.candidates
+                    else "complete"
+                )
             )
         
         try:

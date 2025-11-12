@@ -137,7 +137,7 @@ This roadmap outlines the development timeline for the Agent Stack Controller (a
 
 - [ ] Add screenshots to README
 - [ ] Fix dev environment security issues
-- [ ] Install Docker (optional)
+- [x] Install Docker (optional)
 - [ ] Update dependencies
 
 **Milestone:** ✅ All polish items complete, ready for release

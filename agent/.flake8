@@ -1,0 +1,32 @@
+[flake8]
+# Maximum line length
+max-line-length = 100
+
+# Exclude directories
+exclude =
+    .venv,
+    .pytest_cache,
+    __pycache__,
+    tests,
+    build,
+    dist,
+    *.egg-info
+
+# Ignore specific error codes
+# W293: blank line contains whitespace (cosmetic)
+# W291: trailing whitespace (cosmetic)
+# E741: ambiguous variable name 'l' (acceptable in context)
+# W503: line break before binary operator (PEP 8 now recommends this style)
+ignore = W293,W291,E741,W503
+
+# Show source code for each error
+show-source = True
+
+# Show the specific error code
+show-pep8 = True
+
+# Count the number of occurrences of each error/warning code
+count = True
+
+# Print total number of errors
+statistics = True

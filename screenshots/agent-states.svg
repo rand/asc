@@ -1,0 +1,77 @@
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+  <rect width="800" height="600" fill="#1a0933"/>
+  <rect x="50" y="50" width="700" height="500" fill="#0d0221" stroke="#ff71ce" stroke-width="2" rx="10"/>
+  
+  <!-- Title -->
+  <text x="400" y="100" font-family="monospace" font-size="20" fill="#01cdfe" text-anchor="middle" font-weight="bold">
+    Agent Status - All States
+  </text>
+  
+  <!-- Idle agent -->
+  <circle cx="120" cy="160" r="8" fill="#05ffa1"/>
+  <text x="150" y="167" font-family="monospace" font-size="16" fill="#05ffa1" font-weight="bold">
+    main-planner
+  </text>
+  <text x="170" y="190" font-family="monospace" font-size="13" fill="#fffb96">
+    Status: Idle
+  </text>
+  <text x="170" y="210" font-family="monospace" font-size="12" fill="#b967ff">
+    Ready to accept tasks
+  </text>
+  
+  <!-- Working agent -->
+  <text x="120" y="270" font-family="monospace" font-size="18" fill="#01cdfe">⟳</text>
+  <text x="150" y="277" font-family="monospace" font-size="16" fill="#01cdfe" font-weight="bold">
+    claude-coder
+  </text>
+  <text x="170" y="300" font-family="monospace" font-size="13" fill="#fffb96">
+    Status: Working on #43
+  </text>
+  <text x="170" y="320" font-family="monospace" font-size="12" fill="#b967ff">
+    Task: Fix login bug
+  </text>
+  
+  <!-- Error agent -->
+  <text x="120" y="380" font-family="monospace" font-size="18" fill="#ff71ce">!</text>
+  <text x="150" y="387" font-family="monospace" font-size="16" fill="#ff71ce" font-weight="bold">
+    test-agent
+  </text>
+  <text x="170" y="410" font-family="monospace" font-size="13" fill="#fffb96">
+    Status: Error
+  </text>
+  <text x="170" y="430" font-family="monospace" font-size="12" fill="#b967ff">
+    API rate limit exceeded
+  </text>
+  
+  <!-- Offline agent -->
+  <circle cx="120" cy="480" r="8" fill="none" stroke="#888" stroke-width="2"/>
+  <text x="150" y="487" font-family="monospace" font-size="16" fill="#888" font-weight="bold">
+    backup-agent
+  </text>
+  <text x="170" y="510" font-family="monospace" font-size="13" fill="#888">
+    Status: Offline
+  </text>
+  <text x="170" y="530" font-family="monospace" font-size="12" fill="#888">
+    Last seen: 2 hours ago
+  </text>
+  
+  <!-- Legend -->
+  <rect x="450" y="140" width="280" height="200" fill="#0f0e17" stroke="#b967ff" stroke-width="1" rx="5"/>
+  <text x="590" y="170" font-family="monospace" font-size="14" fill="#ff71ce" text-anchor="middle" font-weight="bold">
+    Status Indicators
+  </text>
+  <circle cx="470" cy="200" r="6" fill="#05ffa1"/>
+  <text x="490" y="206" font-family="monospace" font-size="12" fill="#fffb96">Idle - Ready</text>
+  <text x="480" y="235" font-family="monospace" font-size="14" fill="#01cdfe">⟳</text>
+  <text x="490" y="236" font-family="monospace" font-size="12" fill="#fffb96">Working - Active</text>
+  <text x="480" y="265" font-family="monospace" font-size="14" fill="#ff71ce">!</text>
+  <text x="490" y="266" font-family="monospace" font-size="12" fill="#fffb96">Error - Failed</text>
+  <circle cx="470" cy="290" r="6" fill="none" stroke="#888" stroke-width="2"/>
+  <text x="490" y="296" font-family="monospace" font-size="12" fill="#fffb96">Offline - Down</text>
+  
+  <!-- Placeholder notice -->
+  <rect x="200" y="540" width="400" height="40" fill="#1a0933" fill-opacity="0.9" stroke="#ff71ce" stroke-width="2" rx="5"/>
+  <text x="400" y="565" font-family="monospace" font-size="12" fill="#ff71ce" text-anchor="middle" font-weight="bold">
+    PLACEHOLDER - Capture from running TUI
+  </text>
+</svg>

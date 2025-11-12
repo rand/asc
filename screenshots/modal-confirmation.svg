@@ -1,0 +1,43 @@
+<svg width="1200" height="800" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="800" fill="#1a0933"/>
+  
+  <!-- Dimmed background -->
+  <rect x="50" y="50" width="1100" height="700" fill="#0d0221" opacity="0.5"/>
+  
+  <!-- Modal -->
+  <rect x="350" y="300" width="500" height="200" fill="#0d0221" stroke="#ff71ce" stroke-width="3" rx="10"/>
+  
+  <!-- Warning icon -->
+  <circle cx="420" cy="370" r="25" fill="none" stroke="#ff71ce" stroke-width="3"/>
+  <text x="420" y="385" font-family="monospace" font-size="32" fill="#ff71ce" text-anchor="middle" font-weight="bold">
+    !
+  </text>
+  
+  <!-- Message -->
+  <text x="470" y="360" font-family="monospace" font-size="18" fill="#ff71ce" font-weight="bold">
+    Confirm Action
+  </text>
+  <text x="470" y="390" font-family="monospace" font-size="14" fill="#fffb96">
+    Kill agent 'claude-coder'?
+  </text>
+  <text x="470" y="415" font-family="monospace" font-size="12" fill="#b967ff">
+    This will terminate the agent process.
+  </text>
+  
+  <!-- Buttons -->
+  <rect x="470" y="440" width="120" height="35" fill="#ff71ce" rx="5"/>
+  <text x="530" y="463" font-family="monospace" font-size="14" fill="#0d0221" text-anchor="middle" font-weight="bold">
+    Yes (y)
+  </text>
+  
+  <rect x="610" y="440" width="120" height="35" fill="none" stroke="#b967ff" stroke-width="2" rx="5"/>
+  <text x="670" y="463" font-family="monospace" font-size="14" fill="#b967ff" text-anchor="middle">
+    No (n)
+  </text>
+  
+  <!-- Placeholder notice -->
+  <rect x="400" y="550" width="400" height="50" fill="#1a0933" fill-opacity="0.9" stroke="#ff71ce" stroke-width="2" rx="5"/>
+  <text x="600" y="580" font-family="monospace" font-size="12" fill="#ff71ce" text-anchor="middle" font-weight="bold">
+    PLACEHOLDER - Press 'k' on agent in TUI
+  </text>
+</svg>

@@ -247,6 +247,69 @@ GOOGLE_API_KEY=test
 	}
 }
 
+func TestDockerOptionalDependency(t *testing.T) {
+	checker := NewChecker("", "")
+	
+	// Test that Docker is checked as optional
+	result := checker.CheckBinary("docker")
+	
+	// Docker should either be found (PASS) or not found
+	// The RunAll() method will convert FAIL to WARN for optional dependencies
+	if result.Status != CheckPass && result.Status != CheckFail {
+		t.Errorf("CheckBinary(docker) status = %v, want CheckPass or CheckFail", result.Status)
+	}
+	
+	// Verify RunAll includes Docker check
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "asc.toml")
+	configContent := `[core]
+beads_db_path = "./test-repo"
+`
+	err := os.WriteFile(configPath, []byte(configContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write config: %v", err)
+	}
+	
+	envPath := filepath.Join(tmpDir, ".env")
+	envContent := `CLAUDE_API_KEY=test
+OPENAI_API_KEY=test
+GOOGLE_API_KEY=test
+`
+	err = os.WriteFile(envPath, []byte(envContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write env: %v", err)
+	}
+	
+	checker = NewChecker(configPath, envPath)
+	results := checker.RunAll()
+	
+	// Find Docker in results
+	var dockerResult *CheckResult
+	for i := range results {
+		if results[i].Name == "docker" {
+			dockerResult = &results[i]
+			break
+		}
+	}
+	
+	if dockerResult == nil {
+		t.Errorf("RunAll() missing docker check")
+		return
+	}
+	
+	// Docker should be PASS or WARN (never FAIL since it's optional)
+	if dockerResult.Status == CheckFail {
+		t.Errorf("Docker check should not fail (it's optional), got status: %v", dockerResult.Status)
+	}
+	
+	// If Docker is not installed, it should be WARN with appropriate message
+	if dockerResult.Status == CheckWarn {
+		if !strings.Contains(dockerResult.Message, "optional") {
+			t.Errorf("Docker warning message should mention it's optional, got: %s", dockerResult.Message)
+		}
+	}
+}
+
 func TestFormatResults(t *testing.T) {
 	results := []CheckResult{
 		{Name: "git", Status: CheckPass, Message: "Binary found"},

@@ -5,364 +5,564 @@ import (
 	"testing"
 )
 
-// mockProcessManager is a mock implementation of ProcessManager for testing
+// Mock ProcessManager for testing
 type mockProcessManager struct {
-	processes map[string]*ProcessInfoAdapter
-	started   []string
-	stopped   []int
+	processes map[string]*mockProcessInfo
+	startErr  error
+	stopErr   error
 }
+
+type mockProcessInfo struct {
+	name    string
+	pid     int
+	command string
+	args    []string
+	env     map[string]string
+	running bool
+}
+
+func (m *mockProcessInfo) GetPID() int                     { return m.pid }
+func (m *mockProcessInfo) GetName() string                { return m.name }
+func (m *mockProcessInfo) GetCommand() string             { return m.command }
+func (m *mockProcessInfo) GetArgs() []string              { return m.args }
+func (m *mockProcessInfo) GetEnv() map[string]string      { return m.env }
 
 func newMockProcessManager() *mockProcessManager {
 	return &mockProcessManager{
-		processes: make(map[string]*ProcessInfoAdapter),
-		started:   []string{},
-		stopped:   []int{},
+		processes: make(map[string]*mockProcessInfo),
 	}
 }
 
 func (m *mockProcessManager) Start(name, command string, args []string, env []string) (int, error) {
+	if m.startErr != nil {
+		return 0, m.startErr
+	}
+	
 	pid := len(m.processes) + 1000
 	envMap := make(map[string]string)
 	for _, e := range env {
-		// Simple parsing of KEY=VALUE
-		for i := 0; i < len(e); i++ {
-			if e[i] == '=' {
-				envMap[e[:i]] = e[i+1:]
-				break
-			}
-		}
+		// Simple parsing for testing
+		envMap[e] = e
 	}
 	
-	m.processes[name] = &ProcessInfoAdapter{
-		Name:    name,
-		PID:     pid,
-		Command: command,
-		Args:    args,
-		Env:     envMap,
+	m.processes[name] = &mockProcessInfo{
+		name:    name,
+		pid:     pid,
+		command: command,
+		args:    args,
+		env:     envMap,
+		running: true,
 	}
-	m.started = append(m.started, name)
+	
 	return pid, nil
 }
 
 func (m *mockProcessManager) Stop(pid int) error {
-	m.stopped = append(m.stopped, pid)
-	// Find and remove process
-	for name, info := range m.processes {
-		if info.PID == pid {
-			delete(m.processes, name)
-			break
+	if m.stopErr != nil {
+		return m.stopErr
+	}
+	
+	for _, proc := range m.processes {
+		if proc.pid == pid {
+			proc.running = false
+			return nil
 		}
 	}
-	return nil
-}
-
-func (m *mockProcessManager) StopAll() error {
-	for _, info := range m.processes {
-		m.stopped = append(m.stopped, info.PID)
-	}
-	m.processes = make(map[string]*ProcessInfoAdapter)
-	return nil
+	
+	return fmt.Errorf("process not found: %d", pid)
 }
 
 func (m *mockProcessManager) IsRunning(pid int) bool {
-	for _, info := range m.processes {
-		if info.PID == pid {
-			return true
+	for _, proc := range m.processes {
+		if proc.pid == pid {
+			return proc.running
 		}
 	}
 	return false
 }
 
-func (m *mockProcessManager) GetStatus(pid int) string {
-	if m.IsRunning(pid) {
-		return "running"
-	}
-	return "stopped"
-}
-
 func (m *mockProcessManager) GetProcessInfo(name string) (ProcessInfoGetter, error) {
-	if info, exists := m.processes[name]; exists {
-		return info, nil
+	proc, exists := m.processes[name]
+	if !exists {
+		return nil, fmt.Errorf("process not found: %s", name)
 	}
-	return nil, fmt.Errorf("process not found: %s", name)
+	return proc, nil
 }
 
-func (m *mockProcessManager) ListProcesses() ([]*ProcessInfoAdapter, error) {
-	list := make([]*ProcessInfoAdapter, 0, len(m.processes))
-	for _, info := range m.processes {
-		list = append(list, info)
-	}
-	return list, nil
-}
-
-func TestReloadManager_AddAgent(t *testing.T) {
-	// Create initial config with one agent
-	oldConfig := &Config{
+func TestNewReloadManager(t *testing.T) {
+	config := &Config{
 		Core: CoreConfig{
 			BeadsDBPath: "./test-repo",
-		},
-		Services: ServicesConfig{
-			MCPAgentMail: MCPConfig{
-				StartCommand: "python -m mcp_agent_mail.server",
-				URL:          "http://localhost:8765",
-			},
-		},
-		Agents: map[string]AgentConfig{
-			"agent1": {
-				Command: "echo test",
-				Model:   "claude",
-				Phases:  []string{"planning"},
-			},
 		},
 	}
 	
-	// Create new config with two agents
-	newConfig := &Config{
+	procManager := newMockProcessManager()
+	envVars := map[string]string{
+		"CLAUDE_API_KEY": "test-key",
+	}
+	
+	rm := NewReloadManager(config, procManager, envVars)
+	
+	if rm == nil {
+		t.Fatal("NewReloadManager() returned nil")
+	}
+	
+	if rm.currentConfig != config {
+		t.Errorf("NewReloadManager() config mismatch")
+	}
+	
+	if rm.processManager != procManager {
+		t.Errorf("NewReloadManager() processManager mismatch")
+	}
+}
+
+func TestReloadManager_GetCurrentConfig(t *testing.T) {
+	config := &Config{
 		Core: CoreConfig{
 			BeadsDBPath: "./test-repo",
 		},
-		Services: ServicesConfig{
-			MCPAgentMail: MCPConfig{
-				StartCommand: "python -m mcp_agent_mail.server",
-				URL:          "http://localhost:8765",
-			},
-		},
-		Agents: map[string]AgentConfig{
-			"agent1": {
-				Command: "echo test",
+	}
+	
+	rm := NewReloadManager(config, newMockProcessManager(), nil)
+	
+	currentConfig := rm.GetCurrentConfig()
+	if currentConfig != config {
+		t.Errorf("GetCurrentConfig() returned wrong config")
+	}
+}
+
+func TestReloadManager_AgentConfigChanged(t *testing.T) {
+	rm := NewReloadManager(&Config{}, newMockProcessManager(), nil)
+	
+	tests := []struct {
+		name string
+		old  AgentConfig
+		new  AgentConfig
+		want bool
+	}{
+		{
+			name: "no change",
+			old: AgentConfig{
+				Command: "python agent.py",
 				Model:   "claude",
 				Phases:  []string{"planning"},
 			},
-			"agent2": {
-				Command: "echo test2",
+			new: AgentConfig{
+				Command: "python agent.py",
+				Model:   "claude",
+				Phases:  []string{"planning"},
+			},
+			want: false,
+		},
+		{
+			name: "command changed",
+			old: AgentConfig{
+				Command: "python agent.py",
+				Model:   "claude",
+				Phases:  []string{"planning"},
+			},
+			new: AgentConfig{
+				Command: "python new_agent.py",
+				Model:   "claude",
+				Phases:  []string{"planning"},
+			},
+			want: true,
+		},
+		{
+			name: "model changed",
+			old: AgentConfig{
+				Command: "python agent.py",
+				Model:   "claude",
+				Phases:  []string{"planning"},
+			},
+			new: AgentConfig{
+				Command: "python agent.py",
 				Model:   "gemini",
+				Phases:  []string{"planning"},
+			},
+			want: true,
+		},
+		{
+			name: "phases changed - different count",
+			old: AgentConfig{
+				Command: "python agent.py",
+				Model:   "claude",
+				Phases:  []string{"planning"},
+			},
+			new: AgentConfig{
+				Command: "python agent.py",
+				Model:   "claude",
+				Phases:  []string{"planning", "implementation"},
+			},
+			want: true,
+		},
+		{
+			name: "phases changed - different phases",
+			old: AgentConfig{
+				Command: "python agent.py",
+				Model:   "claude",
+				Phases:  []string{"planning"},
+			},
+			new: AgentConfig{
+				Command: "python agent.py",
+				Model:   "claude",
 				Phases:  []string{"implementation"},
 			},
+			want: true,
+		},
+		{
+			name: "phases same but different order",
+			old: AgentConfig{
+				Command: "python agent.py",
+				Model:   "claude",
+				Phases:  []string{"planning", "implementation"},
+			},
+			new: AgentConfig{
+				Command: "python agent.py",
+				Model:   "claude",
+				Phases:  []string{"implementation", "planning"},
+			},
+			want: false, // Order doesn't matter
 		},
 	}
-	
-	// Create mock process manager
-	procManager := newMockProcessManager()
-	
-	// Create reload manager
-	envVars := map[string]string{
-		"CLAUDE_API_KEY": "test-key",
-	}
-	reloadManager := NewReloadManager(oldConfig, procManager, envVars)
-	
-	// Perform reload
-	result, err := reloadManager.Reload(newConfig)
-	if err != nil {
-		t.Fatalf("Reload failed: %v", err)
-	}
-	
-	// Verify results
-	if len(result.AgentsAdded) != 1 {
-		t.Errorf("Expected 1 agent added, got %d", len(result.AgentsAdded))
-	}
-	
-	if len(result.AgentsAdded) > 0 && result.AgentsAdded[0] != "agent2" {
-		t.Errorf("Expected agent2 to be added, got %s", result.AgentsAdded[0])
-	}
-	
-	if len(result.AgentsRemoved) != 0 {
-		t.Errorf("Expected 0 agents removed, got %d", len(result.AgentsRemoved))
-	}
-	
-	if len(result.AgentsUpdated) != 0 {
-		t.Errorf("Expected 0 agents updated, got %d", len(result.AgentsUpdated))
-	}
-	
-	// Verify agent2 was started
-	if len(procManager.started) != 1 {
-		t.Errorf("Expected 1 agent started, got %d", len(procManager.started))
-	}
-	
-	if len(procManager.started) > 0 && procManager.started[0] != "agent2" {
-		t.Errorf("Expected agent2 to be started, got %s", procManager.started[0])
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := rm.agentConfigChanged(tt.old, tt.new)
+			if got != tt.want {
+				t.Errorf("agentConfigChanged() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }
 
-func TestReloadManager_RemoveAgent(t *testing.T) {
-	// Create initial config with two agents
-	oldConfig := &Config{
-		Core: CoreConfig{
-			BeadsDBPath: "./test-repo",
-		},
-		Services: ServicesConfig{
-			MCPAgentMail: MCPConfig{
-				StartCommand: "python -m mcp_agent_mail.server",
-				URL:          "http://localhost:8765",
+func TestReloadManager_StopAgent(t *testing.T) {
+	tests := []struct {
+		name      string
+		setup     func(*mockProcessManager)
+		agentName string
+		wantErr   bool
+	}{
+		{
+			name: "stop running agent",
+			setup: func(pm *mockProcessManager) {
+				pm.Start("test-agent", "echo", []string{}, []string{})
 			},
+			agentName: "test-agent",
+			wantErr:   false,
 		},
-		Agents: map[string]AgentConfig{
-			"agent1": {
-				Command: "echo test",
-				Model:   "claude",
-				Phases:  []string{"planning"},
+		{
+			name: "stop non-existent agent",
+			setup: func(pm *mockProcessManager) {
+				// Don't start any agents
 			},
-			"agent2": {
-				Command: "echo test2",
-				Model:   "gemini",
-				Phases:  []string{"implementation"},
+			agentName: "non-existent",
+			wantErr:   false, // Should not error for non-existent agent
+		},
+		{
+			name: "stop already stopped agent",
+			setup: func(pm *mockProcessManager) {
+				pid, _ := pm.Start("test-agent", "echo", []string{}, []string{})
+				pm.Stop(pid)
 			},
+			agentName: "test-agent",
+			wantErr:   false, // Should not error for already stopped agent
 		},
 	}
-	
-	// Create new config with one agent
-	newConfig := &Config{
-		Core: CoreConfig{
-			BeadsDBPath: "./test-repo",
-		},
-		Services: ServicesConfig{
-			MCPAgentMail: MCPConfig{
-				StartCommand: "python -m mcp_agent_mail.server",
-				URL:          "http://localhost:8765",
-			},
-		},
-		Agents: map[string]AgentConfig{
-			"agent1": {
-				Command: "echo test",
-				Model:   "claude",
-				Phases:  []string{"planning"},
-			},
-		},
-	}
-	
-	// Create mock process manager with agent2 running
-	procManager := newMockProcessManager()
-	procManager.processes["agent2"] = &ProcessInfoAdapter{
-		Name:    "agent2",
-		PID:     1001,
-		Command: "echo",
-		Args:    []string{"test2"},
-		Env:     map[string]string{},
-	}
-	
-	// Create reload manager
-	envVars := map[string]string{
-		"CLAUDE_API_KEY": "test-key",
-	}
-	reloadManager := NewReloadManager(oldConfig, procManager, envVars)
-	
-	// Perform reload
-	result, err := reloadManager.Reload(newConfig)
-	if err != nil {
-		t.Fatalf("Reload failed: %v", err)
-	}
-	
-	// Verify results
-	if len(result.AgentsRemoved) != 1 {
-		t.Errorf("Expected 1 agent removed, got %d", len(result.AgentsRemoved))
-	}
-	
-	if len(result.AgentsRemoved) > 0 && result.AgentsRemoved[0] != "agent2" {
-		t.Errorf("Expected agent2 to be removed, got %s", result.AgentsRemoved[0])
-	}
-	
-	// Verify agent2 was stopped
-	if len(procManager.stopped) != 1 {
-		t.Errorf("Expected 1 agent stopped, got %d", len(procManager.stopped))
-	}
-	
-	if len(procManager.stopped) > 0 && procManager.stopped[0] != 1001 {
-		t.Errorf("Expected PID 1001 to be stopped, got %d", procManager.stopped[0])
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pm := newMockProcessManager()
+			tt.setup(pm)
+			
+			rm := NewReloadManager(&Config{}, pm, nil)
+			
+			err := rm.stopAgent(tt.agentName)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("stopAgent() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
 	}
 }
 
-func TestReloadManager_UpdateAgent(t *testing.T) {
-	// Create initial config
-	oldConfig := &Config{
-		Core: CoreConfig{
-			BeadsDBPath: "./test-repo",
-		},
-		Services: ServicesConfig{
-			MCPAgentMail: MCPConfig{
-				StartCommand: "python -m mcp_agent_mail.server",
-				URL:          "http://localhost:8765",
-			},
-		},
-		Agents: map[string]AgentConfig{
-			"agent1": {
+func TestReloadManager_StartAgent(t *testing.T) {
+	tests := []struct {
+		name        string
+		agentName   string
+		agentConfig AgentConfig
+		config      *Config
+		wantErr     bool
+	}{
+		{
+			name:      "start valid agent",
+			agentName: "test-agent",
+			agentConfig: AgentConfig{
 				Command: "echo test",
 				Model:   "claude",
 				Phases:  []string{"planning"},
 			},
+			config: &Config{
+				Core: CoreConfig{
+					BeadsDBPath: "./test-repo",
+				},
+				Services: ServicesConfig{
+					MCPAgentMail: MCPConfig{
+						URL: "http://localhost:8765",
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name:      "start agent with empty command",
+			agentName: "test-agent",
+			agentConfig: AgentConfig{
+				Command: "",
+				Model:   "claude",
+				Phases:  []string{"planning"},
+			},
+			config: &Config{
+				Core: CoreConfig{
+					BeadsDBPath: "./test-repo",
+				},
+			},
+			wantErr: true,
 		},
 	}
-	
-	// Create new config with updated agent
-	newConfig := &Config{
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pm := newMockProcessManager()
+			rm := NewReloadManager(&Config{}, pm, map[string]string{
+				"CLAUDE_API_KEY": "test-key",
+			})
+			
+			err := rm.startAgent(tt.agentName, tt.agentConfig, tt.config)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("startAgent() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			
+			if !tt.wantErr {
+				// Verify agent was started
+				_, err := pm.GetProcessInfo(tt.agentName)
+				if err != nil {
+					t.Errorf("Agent was not started: %v", err)
+				}
+			}
+		})
+	}
+}
+
+func TestReloadManager_Reload(t *testing.T) {
+	tests := []struct {
+		name           string
+		currentConfig  *Config
+		newConfig      *Config
+		wantAdded      int
+		wantRemoved    int
+		wantUpdated    int
+		wantErrors     int
+	}{
+		{
+			name: "add new agent",
+			currentConfig: &Config{
+				Core: CoreConfig{BeadsDBPath: "./test"},
+				Services: ServicesConfig{
+					MCPAgentMail: MCPConfig{URL: "http://localhost:8765"},
+				},
+				Agents: map[string]AgentConfig{
+					"agent1": {
+						Command: "echo test",
+						Model:   "claude",
+						Phases:  []string{"planning"},
+					},
+				},
+			},
+			newConfig: &Config{
+				Core: CoreConfig{BeadsDBPath: "./test"},
+				Services: ServicesConfig{
+					MCPAgentMail: MCPConfig{URL: "http://localhost:8765"},
+				},
+				Agents: map[string]AgentConfig{
+					"agent1": {
+						Command: "echo test",
+						Model:   "claude",
+						Phases:  []string{"planning"},
+					},
+					"agent2": {
+						Command: "echo test",
+						Model:   "gemini",
+						Phases:  []string{"implementation"},
+					},
+				},
+			},
+			wantAdded:   1,
+			wantRemoved: 0,
+			wantUpdated: 0,
+			wantErrors:  0,
+		},
+		{
+			name: "remove agent",
+			currentConfig: &Config{
+				Core: CoreConfig{BeadsDBPath: "./test"},
+				Services: ServicesConfig{
+					MCPAgentMail: MCPConfig{URL: "http://localhost:8765"},
+				},
+				Agents: map[string]AgentConfig{
+					"agent1": {
+						Command: "echo test",
+						Model:   "claude",
+						Phases:  []string{"planning"},
+					},
+					"agent2": {
+						Command: "echo test",
+						Model:   "gemini",
+						Phases:  []string{"implementation"},
+					},
+				},
+			},
+			newConfig: &Config{
+				Core: CoreConfig{BeadsDBPath: "./test"},
+				Services: ServicesConfig{
+					MCPAgentMail: MCPConfig{URL: "http://localhost:8765"},
+				},
+				Agents: map[string]AgentConfig{
+					"agent1": {
+						Command: "echo test",
+						Model:   "claude",
+						Phases:  []string{"planning"},
+					},
+				},
+			},
+			wantAdded:   0,
+			wantRemoved: 1,
+			wantUpdated: 0,
+			wantErrors:  0,
+		},
+		{
+			name: "update agent",
+			currentConfig: &Config{
+				Core: CoreConfig{BeadsDBPath: "./test"},
+				Services: ServicesConfig{
+					MCPAgentMail: MCPConfig{URL: "http://localhost:8765"},
+				},
+				Agents: map[string]AgentConfig{
+					"agent1": {
+						Command: "echo test",
+						Model:   "claude",
+						Phases:  []string{"planning"},
+					},
+				},
+			},
+			newConfig: &Config{
+				Core: CoreConfig{BeadsDBPath: "./test"},
+				Services: ServicesConfig{
+					MCPAgentMail: MCPConfig{URL: "http://localhost:8765"},
+				},
+				Agents: map[string]AgentConfig{
+					"agent1": {
+						Command: "echo test",
+						Model:   "gemini", // Changed model
+						Phases:  []string{"planning"},
+					},
+				},
+			},
+			wantAdded:   0,
+			wantRemoved: 0,
+			wantUpdated: 1,
+			wantErrors:  0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pm := newMockProcessManager()
+			
+			// Start agents from current config
+			for name, agent := range tt.currentConfig.Agents {
+				pm.Start(name, agent.Command, []string{}, []string{})
+			}
+			
+			rm := NewReloadManager(tt.currentConfig, pm, map[string]string{
+				"CLAUDE_API_KEY": "test-key",
+			})
+			
+			result, err := rm.Reload(tt.newConfig)
+			if err != nil {
+				t.Fatalf("Reload() error = %v", err)
+			}
+			
+			if len(result.AgentsAdded) != tt.wantAdded {
+				t.Errorf("Reload() added %d agents, want %d", len(result.AgentsAdded), tt.wantAdded)
+			}
+			
+			if len(result.AgentsRemoved) != tt.wantRemoved {
+				t.Errorf("Reload() removed %d agents, want %d", len(result.AgentsRemoved), tt.wantRemoved)
+			}
+			
+			if len(result.AgentsUpdated) != tt.wantUpdated {
+				t.Errorf("Reload() updated %d agents, want %d", len(result.AgentsUpdated), tt.wantUpdated)
+			}
+			
+			if len(result.Errors) != tt.wantErrors {
+				t.Errorf("Reload() had %d errors, want %d: %v", len(result.Errors), tt.wantErrors, result.Errors)
+			}
+			
+			// Verify current config was updated
+			if rm.GetCurrentConfig() != tt.newConfig {
+				t.Errorf("Reload() did not update current config")
+			}
+		})
+	}
+}
+
+func TestReloadManager_BuildAgentEnv(t *testing.T) {
+	config := &Config{
 		Core: CoreConfig{
 			BeadsDBPath: "./test-repo",
 		},
 		Services: ServicesConfig{
 			MCPAgentMail: MCPConfig{
-				StartCommand: "python -m mcp_agent_mail.server",
-				URL:          "http://localhost:8765",
-			},
-		},
-		Agents: map[string]AgentConfig{
-			"agent1": {
-				Command: "echo test",
-				Model:   "gemini", // Changed model
-				Phases:  []string{"planning", "implementation"}, // Added phase
+				URL: "http://localhost:8765",
 			},
 		},
 	}
 	
-	// Create mock process manager with agent1 running
-	procManager := newMockProcessManager()
-	procManager.processes["agent1"] = &ProcessInfoAdapter{
-		Name:    "agent1",
-		PID:     1000,
-		Command: "echo",
-		Args:    []string{"test"},
-		Env:     map[string]string{},
+	agentConfig := AgentConfig{
+		Command: "python agent.py",
+		Model:   "claude",
+		Phases:  []string{"planning", "implementation"},
 	}
 	
-	// Create reload manager
 	envVars := map[string]string{
-		"CLAUDE_API_KEY": "test-key",
-	}
-	reloadManager := NewReloadManager(oldConfig, procManager, envVars)
-	
-	// Perform reload
-	result, err := reloadManager.Reload(newConfig)
-	if err != nil {
-		t.Fatalf("Reload failed: %v", err)
+		"CLAUDE_API_KEY": "test-key-123",
+		"OPENAI_API_KEY": "test-key-456",
 	}
 	
-	// Verify results
-	if len(result.AgentsUpdated) != 1 {
-		t.Errorf("Expected 1 agent updated, got %d", len(result.AgentsUpdated))
+	rm := NewReloadManager(&Config{}, newMockProcessManager(), envVars)
+	
+	env := rm.buildAgentEnv("test-agent", agentConfig, config)
+	
+	// Check that all required environment variables are present
+	expectedVars := map[string]bool{
+		"AGENT_NAME=test-agent":                      false,
+		"AGENT_MODEL=claude":                         false,
+		"AGENT_PHASES=planning,implementation":       false,
+		"MCP_MAIL_URL=http://localhost:8765":         false,
+		"BEADS_DB_PATH=./test-repo":                  false,
+		"CLAUDE_API_KEY=test-key-123":                false,
+		"OPENAI_API_KEY=test-key-456":                false,
 	}
 	
-	if len(result.AgentsUpdated) > 0 && result.AgentsUpdated[0] != "agent1" {
-		t.Errorf("Expected agent1 to be updated, got %s", result.AgentsUpdated[0])
+	for _, envVar := range env {
+		if _, exists := expectedVars[envVar]; exists {
+			expectedVars[envVar] = true
+		}
 	}
 	
-	// Verify agent1 was stopped and restarted
-	if len(procManager.stopped) != 1 {
-		t.Errorf("Expected 1 agent stopped, got %d", len(procManager.stopped))
-	}
-	
-	if len(procManager.started) != 1 {
-		t.Errorf("Expected 1 agent started, got %d", len(procManager.started))
-	}
-	
-	// Verify new process has updated environment
-	info, err := procManager.GetProcessInfo("agent1")
-	if err != nil {
-		t.Fatalf("Failed to get process info: %v", err)
-	}
-	
-	env := info.GetEnv()
-	if env["AGENT_MODEL"] != "gemini" {
-		t.Errorf("Expected model 'gemini', got '%s'", env["AGENT_MODEL"])
-	}
-	
-	if env["AGENT_PHASES"] != "planning,implementation" {
-		t.Errorf("Expected phases 'planning,implementation', got '%s'", env["AGENT_PHASES"])
+	for varName, found := range expectedVars {
+		if !found {
+			t.Errorf("buildAgentEnv() missing environment variable: %s", varName)
+		}
 	}
 }

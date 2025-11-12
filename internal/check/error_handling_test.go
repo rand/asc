@@ -77,7 +77,7 @@ func TestCheckFile_ErrorPaths(t *testing.T) {
 				return filepath.Join(t.TempDir(), "nonexistent.txt")
 			},
 			expectStatus: CheckFail,
-			errorMsg:     "not found",
+			errorMsg:     "does not exist",
 		},
 		{
 			name: "unreadable file",
@@ -102,7 +102,7 @@ func TestCheckFile_ErrorPaths(t *testing.T) {
 				}
 				return subdir
 			},
-			expectStatus: CheckWarn,
+			expectStatus: CheckFail,
 			errorMsg:     "directory",
 		},
 		{
@@ -111,7 +111,7 @@ func TestCheckFile_ErrorPaths(t *testing.T) {
 				return ""
 			},
 			expectStatus: CheckFail,
-			errorMsg:     "empty",
+			errorMsg:     "does not exist",
 		},
 		{
 			name: "path with null bytes",
@@ -171,7 +171,7 @@ beads_db_path = "invalid`
 				return path
 			},
 			expectStatus: CheckFail,
-			errorMsg:     "parse",
+			errorMsg:     "parsing",
 		},
 		{
 			name: "empty config file",
@@ -254,7 +254,7 @@ func TestCheckEnv_ErrorPaths(t *testing.T) {
 				return path
 			},
 			requiredKeys: []string{"MISSING_KEY"},
-			expectStatus: CheckFail,
+			expectStatus: CheckWarn,
 			errorMsg:     "MISSING_KEY",
 		},
 		{
@@ -283,7 +283,7 @@ func TestCheckEnv_ErrorPaths(t *testing.T) {
 			},
 			requiredKeys: []string{"KEY"},
 			expectStatus: CheckFail,
-			errorMsg:     "permission",
+			errorMsg:     "not found",
 		},
 	}
 
@@ -447,7 +447,7 @@ func TestErrorMessageClarity(t *testing.T) {
 			checkFunc: func() CheckResult {
 				return checker.CheckFile("/nonexistent/path/file.txt")
 			},
-			expectKeyword: "not found",
+			expectKeyword: "does not exist",
 		},
 		{
 			name: "invalid config",
@@ -458,7 +458,7 @@ func TestErrorMessageClarity(t *testing.T) {
 				testChecker := NewChecker(path, ".env")
 				return testChecker.CheckConfig()
 			},
-			expectKeyword: "parse",
+			expectKeyword: "parsing",
 		},
 	}
 

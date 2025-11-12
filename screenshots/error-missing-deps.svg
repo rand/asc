@@ -1,0 +1,49 @@
+<svg width="1000" height="600" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1000" height="600" fill="#1a0933"/>
+  <rect x="50" y="50" width="900" height="500" fill="#0d0221" stroke="#ff71ce" stroke-width="2" rx="10"/>
+  
+  <!-- Error icon -->
+  <circle cx="500" cy="120" r="35" fill="none" stroke="#ff71ce" stroke-width="4"/>
+  <text x="500" y="140" font-family="monospace" font-size="48" fill="#ff71ce" text-anchor="middle" font-weight="bold">
+    ✗
+  </text>
+  
+  <!-- Error title -->
+  <text x="500" y="200" font-family="monospace" font-size="24" fill="#ff71ce" text-anchor="middle" font-weight="bold">
+    Dependency Check Failed
+  </text>
+  
+  <!-- Error details -->
+  <text x="200" y="260" font-family="monospace" font-size="14" fill="#fffb96">
+    The following required dependencies are missing:
+  </text>
+  
+  <text x="220" y="300" font-family="monospace" font-size="14" fill="#ff71ce">
+    ✗ bd (beads CLI)
+  </text>
+  <text x="240" y="325" font-family="monospace" font-size="12" fill="#b967ff">
+    Install: pip install beads-cli
+  </text>
+  
+  <text x="220" y="365" font-family="monospace" font-size="14" fill="#ff71ce">
+    ✗ python3
+  </text>
+  <text x="240" y="390" font-family="monospace" font-size="12" fill="#b967ff">
+    Install: brew install python3 (macOS)
+  </text>
+  
+  <!-- Solution -->
+  <rect x="150" y="420" width="700" height="60" fill="#0f0e17" stroke="#05ffa1" stroke-width="1" rx="5"/>
+  <text x="500" y="445" font-family="monospace" font-size="14" fill="#05ffa1" text-anchor="middle">
+    Run 'asc init' to install missing dependencies
+  </text>
+  <text x="500" y="465" font-family="monospace" font-size="12" fill="#fffb96" text-anchor="middle">
+    or install them manually using the commands above
+  </text>
+  
+  <!-- Placeholder notice -->
+  <rect x="300" y="500" width="400" height="40" fill="#1a0933" fill-opacity="0.9" stroke="#ff71ce" stroke-width="2" rx="5"/>
+  <text x="500" y="525" font-family="monospace" font-size="12" fill="#ff71ce" text-anchor="middle" font-weight="bold">
+    PLACEHOLDER - Run 'asc check' with missing deps
+  </text>
+</svg>

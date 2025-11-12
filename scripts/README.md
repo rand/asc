@@ -4,6 +4,89 @@ This directory contains scripts for quality assurance, testing, and monitoring.
 
 ## Available Scripts
 
+### Security Scripts
+
+#### `fix-permissions.sh`
+
+Automatically fixes file and directory permissions for secure operation.
+
+**Usage:**
+
+```bash
+# Fix all permissions
+./scripts/fix-permissions.sh
+```
+
+**What it fixes:**
+- `.env` file → 600 (rw-------)
+- `~/.asc/age.key` → 600 (rw-------)
+- `~/.asc/` directory → 700 (rwx------)
+- `~/.asc/logs/` directory → 700 (rwx------)
+- `~/.asc/pids/` directory → 700 (rwx------)
+- `~/.asc/playbooks/` directory → 700 (rwx------)
+- All log files → 600 (rw-------)
+- All PID files → 600 (rw-------)
+- `.env.age` file → 600 (rw-------)
+
+**Output:**
+- Shows current and target permissions for each file/directory
+- Reports which files were fixed
+- Warns if `.env` is tracked by git
+
+**Exit Codes:**
+- `0`: Success (permissions fixed or already correct)
+
+**Example Output:**
+
+```
+🔒 Fixing Agent Stack Controller Permissions
+==============================================
+
+Checking .env file...
+Fixing: .env (644 → 600)
+
+Checking directories...
+OK: /Users/user/.asc/logs (700)
+Fixing: /Users/user/.asc/pids (755 → 700)
+
+==============================================
+✓ Permissions fixed!
+
+Run 'scripts/check-security.sh' to verify security settings.
+```
+
+---
+
+#### `check-security.sh`
+
+Comprehensive security validation for the Agent Stack Controller.
+
+**Usage:**
+
+```bash
+# Run all security checks
+./scripts/check-security.sh
+
+# Via Make
+make check-security
+```
+
+**Checks performed:**
+- `.env` file permissions (should be 600)
+- `age.key` permissions (should be 600)
+- `.env` is in `.gitignore`
+- `.env` is not tracked by git
+- No secrets in log files
+- No hardcoded secrets in code
+- Directory permissions (logs, pids)
+- Encrypted file permissions
+
+**Exit Codes:**
+- `0`: All security checks passed
+- `1`: One or more security issues found
+
+---
+
 ### Test Quality Scripts
 
 #### `check-flakiness.sh`

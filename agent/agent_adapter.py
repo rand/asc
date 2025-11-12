@@ -12,7 +12,6 @@ import signal
 import logging
 import time
 from pathlib import Path
-from typing import Optional
 
 from agent.llm_client import create_llm_client
 from agent.phase_loop import HephaestusLoop

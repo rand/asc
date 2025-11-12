@@ -43,7 +43,7 @@ func runUp(cmd *cobra.Command, args []string) {
 	// Initialize logger
 	if err := logger.Init(); err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to initialize logger: %v\n", err)
-		os.Exit(1)
+		osExit(1)
 	}
 	defer logger.Close()
 
@@ -71,7 +71,7 @@ func runUp(cmd *cobra.Command, args []string) {
 				logger.Error("Failed to decrypt secrets: %v", err)
 				fmt.Fprintf(os.Stderr, "Failed to decrypt secrets: %v\n", err)
 				fmt.Fprintln(os.Stderr, "Run 'asc secrets decrypt' manually or 'asc init' to set up encryption.")
-				os.Exit(1)
+				osExit(1)
 			}
 			fmt.Println("✓ Secrets decrypted")
 			logger.Debug("Secrets decrypted successfully")
@@ -95,7 +95,7 @@ func runUp(cmd *cobra.Command, args []string) {
 	if check.HasFailures(results) {
 		logger.Error("Dependency check failed")
 		fmt.Fprintln(os.Stderr, "Dependency check failed. Run 'asc check' for details.")
-		os.Exit(1)
+		osExit(1)
 	}
 	logger.Debug("All dependency checks passed")
 
@@ -105,7 +105,7 @@ func runUp(cmd *cobra.Command, args []string) {
 	if err != nil {
 		logger.Error("Failed to load configuration: %v", err)
 		fmt.Fprintf(os.Stderr, "Failed to load configuration: %v\n", err)
-		os.Exit(1)
+		osExit(1)
 	}
 	if debugMode {
 		logger.WithFields(logger.Fields{
@@ -120,7 +120,7 @@ func runUp(cmd *cobra.Command, args []string) {
 	if err := config.LoadAndValidateEnv(envPath); err != nil {
 		logger.Error("Failed to load environment: %v", err)
 		fmt.Fprintf(os.Stderr, "Failed to load environment: %v\n", err)
-		os.Exit(1)
+		osExit(1)
 	}
 	logger.Debug("Environment variables loaded successfully")
 
@@ -129,7 +129,7 @@ func runUp(cmd *cobra.Command, args []string) {
 	if err != nil {
 		logger.Error("Failed to get home directory: %v", err)
 		fmt.Fprintf(os.Stderr, "Failed to get home directory: %v\n", err)
-		os.Exit(1)
+		osExit(1)
 	}
 
 	pidsDir := filepath.Join(homeDir, ".asc", "pids")
@@ -140,7 +140,7 @@ func runUp(cmd *cobra.Command, args []string) {
 	if err != nil {
 		logger.Error("Failed to initialize process manager: %v", err)
 		fmt.Fprintf(os.Stderr, "Failed to initialize process manager: %v\n", err)
-		os.Exit(1)
+		osExit(1)
 	}
 
 	// Step 5: Start mcp_agent_mail service
@@ -155,7 +155,7 @@ func runUp(cmd *cobra.Command, args []string) {
 	if err != nil {
 		logger.Error("Failed to start mcp_agent_mail: %v", err)
 		fmt.Fprintf(os.Stderr, "Failed to start mcp_agent_mail: %v\n", err)
-		os.Exit(1)
+		osExit(1)
 	}
 	logger.Info("mcp_agent_mail service started successfully")
 
@@ -166,7 +166,7 @@ func runUp(cmd *cobra.Command, args []string) {
 		fmt.Fprintf(os.Stderr, "Failed to launch agents: %v\n", err)
 		// Clean up: stop mcp_agent_mail
 		_ = procManager.StopAll()
-		os.Exit(1)
+		osExit(1)
 	}
 
 	// Step 7: Initialize and run TUI (handled in subtask 16.3)
@@ -176,7 +176,7 @@ func runUp(cmd *cobra.Command, args []string) {
 		fmt.Fprintf(os.Stderr, "TUI error: %v\n", err)
 		// Clean up: stop all processes
 		_ = procManager.StopAll()
-		os.Exit(1)
+		osExit(1)
 	}
 
 	// Clean up on exit

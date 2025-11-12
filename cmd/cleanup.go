@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	cleanupDays int
+	cleanupDays   int
 	cleanupDryRun bool
 )
 

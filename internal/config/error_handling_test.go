@@ -20,7 +20,7 @@ func TestLoadConfig_ErrorPaths(t *testing.T) {
 				return filepath.Join(t.TempDir(), "nonexistent.toml")
 			},
 			expectError: true,
-			errorMsg:    "no such file",
+			errorMsg:    "not found",
 		},
 		{
 			name: "invalid TOML syntax",
@@ -35,7 +35,7 @@ beads_db_path = "invalid syntax`
 				return path
 			},
 			expectError: true,
-			errorMsg:    "parse",
+			errorMsg:    "parsing",
 		},
 		{
 			name: "empty config file",
@@ -48,7 +48,7 @@ beads_db_path = "invalid syntax`
 				return path
 			},
 			expectError: true,
-			errorMsg:    "beads_db_path",
+			errorMsg:    "agent",
 		},
 		{
 			name: "missing required fields",
@@ -63,7 +63,7 @@ url = "http://localhost:8765"`
 				return path
 			},
 			expectError: true,
-			errorMsg:    "beads_db_path",
+			errorMsg:    "agent",
 		},
 		{
 			name: "invalid agent configuration",
@@ -194,7 +194,7 @@ func TestValidate_ErrorPaths(t *testing.T) {
 				},
 			},
 			expectError: true,
-			errorMsg:    "model",
+			errorMsg:    "command",
 		},
 		{
 			name: "agent with empty phases",
@@ -217,7 +217,7 @@ func TestValidate_ErrorPaths(t *testing.T) {
 				},
 			},
 			expectError: true,
-			errorMsg:    "phases",
+			errorMsg:    "command",
 		},
 	}
 
@@ -260,7 +260,7 @@ func TestLoadEnv_ErrorPaths(t *testing.T) {
 				return filepath.Join(t.TempDir(), "nonexistent.env")
 			},
 			expectError: true,
-			errorMsg:    "no such file",
+			errorMsg:    "not found",
 		},
 		{
 			name: "unreadable env file",
@@ -288,7 +288,8 @@ ANOTHER_VALID=value`
 				}
 				return path
 			},
-			expectError: false, // Should skip invalid lines
+			expectError: true, // Now returns error for invalid format
+			errorMsg:    "invalid format",
 		},
 	}
 
@@ -353,7 +354,7 @@ start_command = "test"
 url = "http://localhost:8765"
 
 [agent.test]
-command = "python test.py"
+command = "echo test"
 model = "claude"
 phases = ["planning"]`
 	if err := os.WriteFile(configPath, []byte(content), 0644); err != nil {

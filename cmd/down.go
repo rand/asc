@@ -29,7 +29,7 @@ func runDown(cmd *cobra.Command, args []string) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: Failed to get home directory: %v\n", err)
-		os.Exit(1)
+		osExit(1)
 	}
 
 	pidsDir := filepath.Join(homeDir, ".asc", "pids")
@@ -38,14 +38,14 @@ func runDown(cmd *cobra.Command, args []string) {
 	procManager, err := process.NewManager(pidsDir, logsDir)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: Failed to initialize process manager: %v\n", err)
-		os.Exit(1)
+		osExit(1)
 	}
 
 	// List all managed processes
 	processes, err := procManager.ListProcesses()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: Failed to list processes: %v\n", err)
-		os.Exit(1)
+		osExit(1)
 	}
 
 	if len(processes) == 0 {

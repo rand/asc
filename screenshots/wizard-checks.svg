@@ -1,0 +1,44 @@
+<svg width="1000" height="600" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1000" height="600" fill="#1a0933"/>
+  <rect x="50" y="50" width="900" height="500" fill="#0d0221" stroke="#ff71ce" stroke-width="2" rx="10"/>
+  
+  <!-- Title -->
+  <text x="500" y="100" font-family="monospace" font-size="24" fill="#01cdfe" text-anchor="middle" font-weight="bold">
+    Checking Dependencies
+  </text>
+  
+  <!-- Check results -->
+  <text x="200" y="160" font-family="monospace" font-size="14" fill="#05ffa1">
+    ✓ git          Found at /usr/bin/git
+  </text>
+  <text x="200" y="190" font-family="monospace" font-size="14" fill="#05ffa1">
+    ✓ python3      Found at /usr/local/bin/python3
+  </text>
+  <text x="200" y="220" font-family="monospace" font-size="14" fill="#05ffa1">
+    ✓ uv           Found at /usr/local/bin/uv
+  </text>
+  <text x="200" y="250" font-family="monospace" font-size="14" fill="#ff71ce">
+    ✗ bd           Not found in PATH
+  </text>
+  <text x="200" y="280" font-family="monospace" font-size="14" fill="#fffb96">
+    ⚠ docker       Found but not running
+  </text>
+  <text x="200" y="310" font-family="monospace" font-size="14" fill="#05ffa1">
+    ✓ age          Found at /usr/local/bin/age
+  </text>
+  
+  <!-- Summary -->
+  <rect x="150" y="340" width="700" height="60" fill="#0f0e17" stroke="#ff71ce" stroke-width="1" rx="5"/>
+  <text x="500" y="370" font-family="monospace" font-size="14" fill="#ff71ce" text-anchor="middle">
+    Some dependencies are missing or not configured
+  </text>
+  <text x="500" y="390" font-family="monospace" font-size="12" fill="#fffb96" text-anchor="middle">
+    Would you like to install missing components? (y/n)
+  </text>
+  
+  <!-- Placeholder notice -->
+  <rect x="300" y="450" width="400" height="60" fill="#1a0933" fill-opacity="0.9" stroke="#ff71ce" stroke-width="2" rx="5"/>
+  <text x="500" y="480" font-family="monospace" font-size="14" fill="#ff71ce" text-anchor="middle" font-weight="bold">
+    PLACEHOLDER - Capture during asc init
+  </text>
+</svg>

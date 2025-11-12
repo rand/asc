@@ -41,7 +41,7 @@ A command-line orchestration tool for managing a local colony of AI coding agent
 
 ### Installation
 
-#### Option 1: Install via go install (requires Go 1.21+)
+#### Option 1: Install via go install (requires Go 1.24+)
 
 The simplest way to install if you have Go installed:
 
@@ -55,7 +55,7 @@ This will install the `asc` binary to `$GOPATH/bin` (usually `~/go/bin`). Make s
 export PATH=$PATH:$(go env GOPATH)/bin
 ```
 
-#### Option 2: Build from source (requires Go 1.21+)
+#### Option 2: Build from source (requires Go 1.24+)
 
 Clone the repository and build using the provided Makefile:
 
@@ -116,13 +116,25 @@ Run the interactive setup wizard:
 asc init
 ```
 
-The wizard will:
-1. Check for required dependencies (git, python3, uv, bd, docker)
-2. Offer to install missing components
-3. Backup any existing configuration files
-4. Prompt for API keys (Claude, OpenAI, Google)
-5. Generate default configuration files
-6. Run a health check to verify everything works
+![Setup wizard welcome screen with vaporwave styling](screenshots/wizard-welcome.svg)
+
+The wizard will guide you through:
+
+1. **Welcome screen** - Overview of the setup process
+2. **Template selection** - Choose from pre-configured agent setups (solo, team, swarm)
+
+   ![Template selection showing solo, team, and swarm options](screenshots/wizard-templates.svg)
+
+3. **Dependency checks** - Verify required tools are installed
+
+   ![Dependency check results with pass/fail indicators](screenshots/wizard-checks.svg)
+
+4. **API key configuration** - Securely enter your API keys with masked input
+
+   ![API key input form with masked password fields](screenshots/wizard-api-keys.svg)
+
+5. **Configuration generation** - Create asc.toml and encrypted .env.age files
+6. **Health check** - Verify the stack is working correctly
 
 ## Usage
 
@@ -141,35 +153,34 @@ This will:
 
 ### TUI Dashboard
 
-Once running, you'll see a three-pane interface:
+Once running, you'll see a three-pane interface with real-time updates:
 
-```
-┌─────────────────┬─────────────────────────────────┐
-│ Agent Status    │ Task Stream                     │
-│                 │                                 │
-│ ● main-planner  │ #42 [open] Implement auth       │
-│   Idle          │ #43 [in_progress] Fix bug       │
-│                 │ #44 [open] Add tests            │
-│ ⟳ claude-coder  │                                 │
-│   Working #43   │                                 │
-│                 │                                 │
-│ ○ test-agent    │                                 │
-│   Offline       │                                 │
-├─────────────────┴─────────────────────────────────┤
-│ MCP Interaction Log                               │
-│                                                   │
-│ [10:30:15] [lease] claude-coder → src/auth.go    │
-│ [10:30:18] [beads] claude-coder → claimed #43    │
-│ [10:30:22] [message] test-agent → ready          │
-└───────────────────────────────────────────────────┘
-(q)uit | (r)efresh | (t)est
-```
+![TUI Dashboard showing agent status, task stream, and MCP interaction logs with vaporwave theme](screenshots/tui-dashboard.svg)
+
+The dashboard displays:
+- **Left pane**: Agent status with color-coded indicators (idle, working, error, offline)
+- **Right top pane**: Task stream showing open and in-progress tasks from beads
+- **Right bottom pane**: MCP interaction log with real-time agent communication
+- **Footer**: Keyboard shortcuts and connection status indicators
 
 #### Keyboard Commands
 
 - `q` - Quit and shut down all agents
 - `r` - Force refresh all panes
 - `t` - Run health check test
+- `v` - View task details in modal (when task is selected)
+- `k` - Kill selected agent (with confirmation)
+- `↑↓` - Navigate through tasks and agents
+
+#### Interactive Features
+
+The TUI supports interactive modals for detailed information:
+
+![Task details modal showing task ID, status, assignee, and description](screenshots/modal-task-details.svg)
+
+Destructive actions require confirmation:
+
+![Confirmation dialog for killing an agent process](screenshots/modal-confirmation.svg)
 
 ### Stopping the Agent Stack
 
@@ -198,6 +209,10 @@ Dependency Check Results:
 ✓ asc.toml     Valid configuration
 ✓ .env         API keys present
 ```
+
+If dependencies are missing, you'll see clear error messages:
+
+![Error screen showing missing dependencies with installation instructions](screenshots/error-missing-deps.svg)
 
 ### Diagnostics and Troubleshooting
 
@@ -480,6 +495,29 @@ asc automatically sets restrictive permissions on sensitive files:
 5. **Audit access** - Review who has access to encrypted secrets
 6. **Use environment-specific files** - `.env.prod.age`, `.env.staging.age`
 
+## Agent Status Indicators
+
+The TUI uses color-coded indicators to show agent states at a glance:
+
+![Agent status pane showing all possible states: idle (green), working (blue), error (red), and offline (gray)](screenshots/agent-states.svg)
+
+- **● Green** - Agent is idle and ready to accept tasks
+- **⟳ Blue** - Agent is actively working on a task
+- **! Red** - Agent encountered an error
+- **○ Gray** - Agent is offline or not responding
+
+## Error Handling
+
+When configuration errors occur, asc provides clear, actionable error messages:
+
+![Configuration error screen showing TOML parse error with line number and solution](screenshots/error-config.svg)
+
+All errors include:
+- Clear description of what went wrong
+- File and line number (when applicable)
+- Suggested solutions to fix the issue
+- Links to relevant documentation
+
 ## Troubleshooting
 
 ### "Command not found: bd"
@@ -698,7 +736,7 @@ asc/
 
 ### Required
 
-- **Go 1.21+** (for building from source)
+- **Go 1.24+** (for building from source)
 - **git** - Version control
 - **python3** - For running agents
 - **beads (bd)** - Task database CLI
@@ -707,20 +745,144 @@ asc/
 ### Optional
 
 - **uv** - Fast Python package manager
-- **docker** - If agents require containerization
+- **docker** - For containerized agent execution (optional, see [Docker Setup](#docker-setup))
+
+## Docker Setup
+
+Docker is an optional dependency that enables containerized agent execution. This can be useful for:
+
+- Isolating agent environments
+- Running agents with specific dependencies
+- Testing agents in clean environments
+- Deploying agents to container orchestration platforms
+
+### Installation
+
+#### macOS
+
+```bash
+# Using Homebrew
+brew install --cask docker
+
+# Or download Docker Desktop from:
+# https://www.docker.com/products/docker-desktop
+```
+
+After installation, start Docker Desktop from Applications or run:
+
+```bash
+open -a Docker
+```
+
+Wait for Docker to start (you'll see the Docker icon in your menu bar), then verify:
+
+```bash
+docker --version
+docker ps
+```
+
+#### Linux
+
+```bash
+# Ubuntu/Debian
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+sudo usermod -aG docker $USER
+
+# Fedora/RHEL
+sudo dnf install docker
+sudo systemctl start docker
+sudo systemctl enable docker
+sudo usermod -aG docker $USER
+
+# Verify installation
+docker --version
+docker ps
+```
+
+**Note:** You may need to log out and back in for group membership changes to take effect.
+
+#### Windows
+
+Download and install Docker Desktop from:
+https://www.docker.com/products/docker-desktop
+
+After installation, verify in PowerShell or Command Prompt:
+
+```powershell
+docker --version
+docker ps
+```
+
+### Verification
+
+Run the `asc check` command to verify Docker is properly installed:
+
+```bash
+asc check
+```
+
+Docker will show as:
+- **✓ PASS** if installed and running
+- **⚠ WARN** if not installed (optional dependency)
+
+### Using Docker with asc
+
+Docker support is currently optional and not required for basic agent operation. Future features may include:
+
+- Containerized agent execution
+- Docker-based agent templates
+- Container orchestration integration
+- Isolated agent environments
+
+For now, agents run as native processes on your system. Docker is checked during `asc check` but is not required for operation.
+
+### Testing Docker Installation
+
+To verify Docker is working correctly, run the hello-world container:
+
+```bash
+docker run --rm hello-world
+```
+
+You should see output confirming Docker is working:
+```
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+```
+
+### Troubleshooting
+
+**Docker command not found:**
+- Ensure Docker Desktop is running (macOS/Windows)
+- Check that `/usr/local/bin/docker` exists and is in your PATH
+- Restart your terminal after installation
+
+**Permission denied:**
+- Linux: Ensure your user is in the `docker` group: `sudo usermod -aG docker $USER`
+- Log out and back in for changes to take effect
+
+**Docker daemon not running:**
+- macOS/Windows: Start Docker Desktop application
+- Linux: `sudo systemctl start docker`
+
+For more help, see the [Docker documentation](https://docs.docker.com/).
 
 ## Documentation
 
 Comprehensive documentation is available in the `docs/` directory:
 
-- **[Documentation Index](docs/README.md)** - Complete documentation guide
-- **[Specifications](docs/specs/)** - Design documents and specifications
+- **[Documentation Index](docs/INDEX.md)** - Complete documentation index with all guides
+- **[Documentation Overview](docs/README.md)** - Documentation guide and standards
+- **[Configuration Guide](docs/CONFIGURATION.md)** - Configuration reference
+- **[API Reference](docs/API_REFERENCE.md)** - API documentation
+- **[Code Examples](docs/CODE_EXAMPLES.md)** - Practical code examples
+- **[FAQ](docs/FAQ.md)** - Frequently asked questions
+- **[Operators Handbook](docs/OPERATORS_HANDBOOK.md)** - Operations guide
 - **[Security](docs/security/)** - Security features and best practices
 - **[Testing](docs/testing/)** - Test reports and coverage
 - **[Agent Adapter](agent/README.md)** - Python agent framework documentation
-- **[Dependencies](docs/DEPENDENCIES.md)** - Dependency management and update policies
-- **[Breaking Changes](docs/BREAKING_CHANGES.md)** - Dependency breaking changes log
-- **[Known Issues](docs/KNOWN_ISSUES.md)** - Known dependency issues and workarounds
+- **[Screenshot Guide](docs/SCREENSHOTS.md)** - Guide for capturing and updating screenshots
 
 ### Quick Links
 
@@ -728,6 +890,10 @@ Comprehensive documentation is available in the `docs/` directory:
 - [Design](/.kiro/specs/agent-stack-controller/design.md) - Architecture and design
 - [Tasks](/.kiro/specs/agent-stack-controller/tasks.md) - Implementation tasks
 - [Agent Validation](agent/VALIDATION.md) - Agent implementation validation
+
+### Screenshots
+
+All screenshots in this README are placeholders (SVG format) that need to be replaced with actual terminal captures. See [docs/SCREENSHOTS.md](docs/SCREENSHOTS.md) for detailed instructions on capturing and optimizing screenshots. The placeholder images show the expected layout and content but should be replaced with real captures of the running application.
 
 ## Contributing
 

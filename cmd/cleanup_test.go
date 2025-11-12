@@ -203,7 +203,7 @@ func TestCleanupCommand_NonLogFiles(t *testing.T) {
 	defer os.Setenv("HOME", oldHome)
 
 	oldTime := time.Now().Add(-40 * 24 * time.Hour)
-	
+
 	txtPath := filepath.Join(env.LogDir, "old.txt")
 	if err := os.WriteFile(txtPath, []byte("text file"), 0644); err != nil {
 		t.Fatalf("Failed to create txt file: %v", err)

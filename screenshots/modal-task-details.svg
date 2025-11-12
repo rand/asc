@@ -1,0 +1,85 @@
+<svg width="1200" height="800" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="800" fill="#1a0933"/>
+  
+  <!-- Dimmed background (TUI) -->
+  <rect x="50" y="50" width="1100" height="700" fill="#0d0221" opacity="0.5"/>
+  
+  <!-- Modal -->
+  <rect x="300" y="200" width="600" height="400" fill="#0d0221" stroke="#ff71ce" stroke-width="3" rx="10"/>
+  <rect x="300" y="200" width="600" height="400" fill="url(#glass)" opacity="0.1"/>
+  
+  <!-- Modal header -->
+  <text x="600" y="240" font-family="monospace" font-size="20" fill="#ff71ce" text-anchor="middle" font-weight="bold">
+    Task Details
+  </text>
+  
+  <!-- Task info -->
+  <text x="330" y="280" font-family="monospace" font-size="14" fill="#b967ff">
+    ID:
+  </text>
+  <text x="450" y="280" font-family="monospace" font-size="14" fill="#fffb96">
+    #43
+  </text>
+  
+  <text x="330" y="310" font-family="monospace" font-size="14" fill="#b967ff">
+    Title:
+  </text>
+  <text x="450" y="310" font-family="monospace" font-size="14" fill="#fffb96">
+    Fix login bug
+  </text>
+  
+  <text x="330" y="340" font-family="monospace" font-size="14" fill="#b967ff">
+    Status:
+  </text>
+  <rect x="450" y="327" width="100" height="20" fill="#01cdfe" rx="3"/>
+  <text x="500" y="342" font-family="monospace" font-size="12" fill="#0d0221" text-anchor="middle" font-weight="bold">
+    in_progress
+  </text>
+  
+  <text x="330" y="370" font-family="monospace" font-size="14" fill="#b967ff">
+    Assignee:
+  </text>
+  <text x="450" y="370" font-family="monospace" font-size="14" fill="#fffb96">
+    claude-coder
+  </text>
+  
+  <text x="330" y="400" font-family="monospace" font-size="14" fill="#b967ff">
+    Phase:
+  </text>
+  <text x="450" y="400" font-family="monospace" font-size="14" fill="#fffb96">
+    implementation
+  </text>
+  
+  <!-- Description -->
+  <text x="330" y="440" font-family="monospace" font-size="14" fill="#b967ff">
+    Description:
+  </text>
+  <text x="330" y="465" font-family="monospace" font-size="12" fill="#fffb96">
+    Users are unable to log in when using
+  </text>
+  <text x="330" y="485" font-family="monospace" font-size="12" fill="#fffb96">
+    special characters in their password.
+  </text>
+  <text x="330" y="505" font-family="monospace" font-size="12" fill="#fffb96">
+    Need to fix URL encoding in auth handler.
+  </text>
+  
+  <!-- Close button -->
+  <text x="600" y="560" font-family="monospace" font-size="14" fill="#ff71ce" text-anchor="middle">
+    Press Esc to close
+  </text>
+  
+  <!-- Placeholder notice -->
+  <rect x="400" y="620" width="400" height="50" fill="#1a0933" fill-opacity="0.9" stroke="#ff71ce" stroke-width="2" rx="5"/>
+  <text x="600" y="650" font-family="monospace" font-size="12" fill="#ff71ce" text-anchor="middle" font-weight="bold">
+    PLACEHOLDER - Press 'v' on task in TUI
+  </text>
+  
+  <!-- Glass effect gradient -->
+  <defs>
+    <linearGradient id="glass" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#fff;stop-opacity:0.2" />
+      <stop offset="100%" style="stop-color:#fff;stop-opacity:0.05" />
+    </linearGradient>
+  </defs>
+</svg>

@@ -101,11 +101,12 @@ type Manager struct {
 //	    log.Fatal(err)
 //	}
 func NewManager(pidDir, logDir string) (*Manager, error) {
-	// Create directories if they don't exist
-	if err := os.MkdirAll(pidDir, 0755); err != nil {
+	// Create directories if they don't exist with secure permissions (0700)
+	// This ensures only the owner can read/write/execute
+	if err := os.MkdirAll(pidDir, 0700); err != nil {
 		return nil, fmt.Errorf("failed to create PID directory: %w", err)
 	}
-	if err := os.MkdirAll(logDir, 0755); err != nil {
+	if err := os.MkdirAll(logDir, 0700); err != nil {
 		return nil, fmt.Errorf("failed to create log directory: %w", err)
 	}
 
@@ -123,9 +124,10 @@ func NewManager(pidDir, logDir string) (*Manager, error) {
 //
 //	pid, err := manager.Start("my-agent", "python", []string{"agent.py"}, []string{"API_KEY=secret"})
 func (m *Manager) Start(name string, command string, args []string, env []string) (int, error) {
-	// Create log file
+	// Create log file with secure permissions (0600)
+	// This ensures only the owner can read/write the log file
 	logPath := filepath.Join(m.logDir, fmt.Sprintf("%s.log", name))
-	logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)
 	if err != nil {
 		return 0, fmt.Errorf("failed to create log file: %w", err)
 	}

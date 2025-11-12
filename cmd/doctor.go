@@ -10,9 +10,9 @@ import (
 )
 
 var (
-	doctorFix    bool
+	doctorFix     bool
 	doctorVerbose bool
-	doctorJSON   bool
+	doctorJSON    bool
 )
 
 var doctorCmd = &cobra.Command{
@@ -34,7 +34,7 @@ Use --fix to automatically remediate detected issues where possible.`,
 
 func init() {
 	rootCmd.AddCommand(doctorCmd)
-	
+
 	doctorCmd.Flags().BoolVar(&doctorFix, "fix", false, "Automatically fix issues where possible")
 	doctorCmd.Flags().BoolVar(&doctorVerbose, "verbose", false, "Show detailed diagnostic information")
 	doctorCmd.Flags().BoolVar(&doctorJSON, "json", false, "Output results in JSON format")
@@ -42,11 +42,11 @@ func init() {
 
 func runDoctor(cmd *cobra.Command, args []string) {
 	logger.Info("Running asc doctor diagnostics...")
-	
+
 	// Default paths
 	configPath := "asc.toml"
 	envPath := ".env"
-	
+
 	// Create doctor instance
 	doc, err := doctor.NewDoctor(configPath, envPath)
 	if err != nil {
@@ -54,7 +54,7 @@ func runDoctor(cmd *cobra.Command, args []string) {
 		fmt.Fprintf(os.Stderr, "Error: Failed to initialize doctor: %v\n", err)
 		osExit(1)
 	}
-	
+
 	// Run diagnostics
 	report, err := doc.RunDiagnostics()
 	if err != nil {
@@ -62,7 +62,7 @@ func runDoctor(cmd *cobra.Command, args []string) {
 		fmt.Fprintf(os.Stderr, "Error: Failed to run diagnostics: %v\n", err)
 		osExit(1)
 	}
-	
+
 	// Apply fixes if requested
 	if doctorFix {
 		logger.Info("Applying automatic fixes...")
@@ -74,7 +74,7 @@ func runDoctor(cmd *cobra.Command, args []string) {
 		}
 		report.FixesApplied = fixReport
 	}
-	
+
 	// Output results
 	if doctorJSON {
 		output, err := report.ToJSON()
@@ -88,7 +88,7 @@ func runDoctor(cmd *cobra.Command, args []string) {
 		output := report.Format(doctorVerbose)
 		fmt.Println(output)
 	}
-	
+
 	// Exit with appropriate code
 	if report.HasCriticalIssues() {
 		osExit(1)

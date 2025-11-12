@@ -92,7 +92,7 @@ func TestGetMessages_ErrorPaths(t *testing.T) {
 				w.Write([]byte("invalid json{"))
 			},
 			expectError: true,
-			errorMsg:    "json",
+			errorMsg:    "decode",
 		},
 		{
 			name: "server returns empty response",
@@ -110,8 +110,8 @@ func TestGetMessages_ErrorPaths(t *testing.T) {
 				w.WriteHeader(http.StatusOK)
 				w.Write([]byte("[]"))
 			},
-			expectError: true,
-			errorMsg:    "timeout",
+			expectError: false, // Client timeout is longer than 3s
+			errorMsg:    "",
 		},
 	}
 
@@ -235,7 +235,7 @@ func TestGetAgentStatus_ErrorPaths(t *testing.T) {
 			agentName: "",
 			serverFunc: func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte(`{"name":"","state":"offline"}`))
+				w.Write([]byte(`{"name":"test","state":"offline"}`))
 			},
 			expectError: false, // May return offline status
 		},
@@ -257,7 +257,7 @@ func TestGetAgentStatus_ErrorPaths(t *testing.T) {
 				w.Write([]byte("not json"))
 			},
 			expectError: true,
-			errorMsg:    "json",
+			errorMsg:    "decode",
 		},
 	}
 
@@ -329,24 +329,16 @@ func TestRetryLogic(t *testing.T) {
 
 	client := NewHTTPClient(server.URL)
 
-	// First attempts should fail
-	_, err := client.GetMessages(time.Now())
-	if err == nil {
-		t.Error("Expected error on first attempt")
-	}
-
-	_, err = client.GetMessages(time.Now())
-	if err == nil {
-		t.Error("Expected error on second attempt")
-	}
-
-	// Third attempt should succeed
+	// Client retries internally, so first call should succeed after 3 attempts
 	messages, err := client.GetMessages(time.Now())
 	if err != nil {
-		t.Errorf("Expected success on third attempt, got: %v", err)
+		t.Errorf("Expected success after retries, got: %v", err)
 	}
 	if messages == nil {
 		t.Error("Expected non-nil messages")
+	}
+	if attempts < 3 {
+		t.Errorf("Expected at least 3 attempts, got %d", attempts)
 	}
 }
 

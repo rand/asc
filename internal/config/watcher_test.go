@@ -232,3 +232,184 @@ phases = ["planning"]
 		}
 	}
 }
+
+func TestWatcher_StartAlreadyRunning(t *testing.T) {
+	// Create a temporary config file
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "test.toml")
+	
+	// Write initial config
+	initialConfig := `
+[core]
+beads_db_path = "./test-repo"
+
+[services.mcp_agent_mail]
+start_command = "python -m mcp_agent_mail.server"
+url = "http://localhost:8765"
+
+[agent.test-agent]
+command = "echo test"
+model = "claude"
+phases = ["planning"]
+`
+	
+	if err := os.WriteFile(configPath, []byte(initialConfig), 0644); err != nil {
+		t.Fatalf("Failed to write initial config: %v", err)
+	}
+	
+	// Create watcher
+	watcher, err := NewWatcher(configPath)
+	if err != nil {
+		t.Fatalf("Failed to create watcher: %v", err)
+	}
+	defer watcher.Stop()
+	
+	// Start watching
+	if err := watcher.Start(); err != nil {
+		t.Fatalf("Failed to start watcher: %v", err)
+	}
+	
+	// Try to start again - should return error
+	err = watcher.Start()
+	if err == nil {
+		t.Fatal("Expected error when starting already running watcher")
+	}
+	if !contains(err.Error(), "already running") {
+		t.Errorf("Expected 'already running' error, got: %v", err)
+	}
+}
+
+func TestWatcher_StartInvalidPath(t *testing.T) {
+	// Create watcher with non-existent path
+	watcher, err := NewWatcher("/nonexistent/path/config.toml")
+	if err != nil {
+		t.Fatalf("Failed to create watcher: %v", err)
+	}
+	defer watcher.Stop()
+	
+	// Try to start - should fail
+	err = watcher.Start()
+	if err == nil {
+		t.Fatal("Expected error when starting watcher with invalid path")
+	}
+}
+
+func TestWatcher_OnReload(t *testing.T) {
+	// Create a temporary config file
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "test.toml")
+	
+	// Write initial config
+	initialConfig := `
+[core]
+beads_db_path = "./test-repo"
+
+[services.mcp_agent_mail]
+start_command = "python -m mcp_agent_mail.server"
+url = "http://localhost:8765"
+
+[agent.test-agent]
+command = "echo test"
+model = "claude"
+phases = ["planning"]
+`
+	
+	if err := os.WriteFile(configPath, []byte(initialConfig), 0644); err != nil {
+		t.Fatalf("Failed to write initial config: %v", err)
+	}
+	
+	// Create watcher
+	watcher, err := NewWatcher(configPath)
+	if err != nil {
+		t.Fatalf("Failed to create watcher: %v", err)
+	}
+	defer watcher.Stop()
+	
+	// Register callback
+	callbackCalled := false
+	var receivedConfig *Config
+	watcher.OnReload(func(newConfig *Config) error {
+		callbackCalled = true
+		receivedConfig = newConfig
+		return nil
+	})
+	
+	// Start watching
+	if err := watcher.Start(); err != nil {
+		t.Fatalf("Failed to start watcher: %v", err)
+	}
+	
+	// Modify the config file
+	updatedConfig := `
+[core]
+beads_db_path = "./test-repo"
+
+[services.mcp_agent_mail]
+start_command = "python -m mcp_agent_mail.server"
+url = "http://localhost:8765"
+
+[agent.test-agent]
+command = "echo test"
+model = "gemini"
+phases = ["planning", "implementation"]
+`
+	
+	// Wait a bit before writing
+	time.Sleep(100 * time.Millisecond)
+	
+	if err := os.WriteFile(configPath, []byte(updatedConfig), 0644); err != nil {
+		t.Fatalf("Failed to write updated config: %v", err)
+	}
+	
+	// Wait for callback
+	time.Sleep(1 * time.Second)
+	
+	if !callbackCalled {
+		t.Fatal("Callback was not called")
+	}
+	
+	if receivedConfig == nil {
+		t.Fatal("Received nil config in callback")
+	}
+	
+	if receivedConfig.Agents["test-agent"].Model != "gemini" {
+		t.Errorf("Expected model 'gemini', got '%s'", receivedConfig.Agents["test-agent"].Model)
+	}
+}
+
+func TestWatcher_StopNotRunning(t *testing.T) {
+	// Create a temporary config file
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "test.toml")
+	
+	// Write initial config
+	initialConfig := `
+[core]
+beads_db_path = "./test-repo"
+
+[services.mcp_agent_mail]
+start_command = "python -m mcp_agent_mail.server"
+url = "http://localhost:8765"
+
+[agent.test-agent]
+command = "echo test"
+model = "claude"
+phases = ["planning"]
+`
+	
+	if err := os.WriteFile(configPath, []byte(initialConfig), 0644); err != nil {
+		t.Fatalf("Failed to write initial config: %v", err)
+	}
+	
+	// Create watcher
+	watcher, err := NewWatcher(configPath)
+	if err != nil {
+		t.Fatalf("Failed to create watcher: %v", err)
+	}
+	
+	// Stop without starting - should not panic
+	watcher.Stop()
+	
+	// Stop again - should not panic
+	watcher.Stop()
+}

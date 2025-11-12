@@ -22,6 +22,26 @@ func DefaultEnvPath() string {
 	return ".env"
 }
 
+// GetDefaultPIDDir returns the default directory for storing process ID files.
+// This is typically "~/.asc/pids" in the user's home directory.
+func GetDefaultPIDDir() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to get home directory: %w", err)
+	}
+	return fmt.Sprintf("%s/.asc/pids", home), nil
+}
+
+// GetDefaultLogDir returns the default directory for storing log files.
+// This is typically "~/.asc/logs" in the user's home directory.
+func GetDefaultLogDir() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", fmt.Errorf("failed to get home directory: %w", err)
+	}
+	return fmt.Sprintf("%s/.asc/logs", home), nil
+}
+
 // LoadEnv reads the .env file and loads API keys into the environment.
 // It parses KEY=VALUE format, skips comments and empty lines, and sets
 // environment variables for each entry. Returns an error if the file

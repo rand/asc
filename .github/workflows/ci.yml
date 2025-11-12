@@ -25,6 +25,31 @@ jobs:
           version: latest
           args: --timeout=5m
 
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Install Python linters
+        run: |
+          cd agent
+          uv pip install pylint flake8
+
+      - name: Run pylint
+        run: |
+          cd agent
+          uv run pylint *.py --fail-under=9.0
+
+      - name: Run flake8
+        run: |
+          cd agent
+          uv run flake8 .
+
   test:
     name: Test
     runs-on: ${{ matrix.os }}
@@ -163,10 +188,33 @@ jobs:
           go install golang.org/x/vuln/cmd/govulncheck@latest
           govulncheck ./...
 
+  documentation:
+    name: Documentation Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Validate markdown links
+        run: ./scripts/validate-links.sh
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Test documentation examples
+        run: ./scripts/test-examples.sh
+
   quality-summary:
     name: Quality Gate Summary
     runs-on: ubuntu-latest
-    needs: [lint, test, build, integration-test, security, dependency-check]
+    needs: [lint, test, build, integration-test, security, dependency-check, documentation]
     if: always()
     steps:
       - name: Checkout code
@@ -196,6 +244,7 @@ jobs:
           | Integration Tests | ${{ needs.integration-test.result == 'success' && '✅ Passed' || '❌ Failed' }} |
           | Security Scan | ${{ needs.security.result == 'success' && '✅ Passed' || '❌ Failed' }} |
           | Dependency Check | ${{ needs.dependency-check.result == 'success' && '✅ Passed' || '❌ Failed' }} |
+          | Documentation | ${{ needs.documentation.result == 'success' && '✅ Passed' || '❌ Failed' }} |
           
           ## Quality Metrics
           
@@ -212,7 +261,8 @@ jobs:
              [ "${{ needs.build.result }}" = "success" ] && \
              [ "${{ needs.integration-test.result }}" = "success" ] && \
              [ "${{ needs.security.result }}" = "success" ] && \
-             [ "${{ needs.dependency-check.result }}" = "success" ]; then
+             [ "${{ needs.dependency-check.result }}" = "success" ] && \
+             [ "${{ needs.documentation.result }}" = "success" ]; then
             echo "✅ **All quality gates passed!** This PR is ready for review." >> quality-summary.md
           else
             echo "❌ **Some quality gates failed.** Please review the failed checks above." >> quality-summary.md
@@ -238,7 +288,7 @@ jobs:
   all-checks:
     name: All Checks Passed
     runs-on: ubuntu-latest
-    needs: [lint, test, build, integration-test, security, dependency-check]
+    needs: [lint, test, build, integration-test, security, dependency-check, documentation]
     steps:
       - name: All checks passed
         run: echo "All CI checks passed successfully!"

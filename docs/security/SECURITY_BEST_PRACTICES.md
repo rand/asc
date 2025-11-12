@@ -2,6 +2,8 @@
 
 This document outlines security best practices for developing, deploying, and using the Agent Stack Controller (asc).
 
+> **For Production Deployments:** See the comprehensive [Production Security Checklist](./PRODUCTION_SECURITY_CHECKLIST.md) for a complete pre-deployment and operational security guide.
+
 ## Table of Contents
 
 - [For Users](#for-users)

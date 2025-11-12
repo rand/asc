@@ -120,7 +120,8 @@ func InitWithFormat(format LogFormat) error {
 		}
 
 		logDir := filepath.Join(homeDir, ".asc", "logs")
-		if e := os.MkdirAll(logDir, 0755); e != nil {
+		// Create log directory with secure permissions (0700)
+		if e := os.MkdirAll(logDir, 0700); e != nil {
 			err = fmt.Errorf("failed to create log directory: %w", e)
 			return
 		}
@@ -142,7 +143,8 @@ func InitWithFormat(format LogFormat) error {
 //
 //	logger, err := logger.NewLogger("/var/log/app.log", 10*1024*1024, 5, logger.INFO)
 func NewLogger(logPath string, maxSize int64, maxBackups int, minLevel LogLevel) (*Logger, error) {
-	file, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	// Create log file with secure permissions (0600)
+	file, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open log file: %w", err)
 	}
@@ -216,12 +218,12 @@ func (l *Logger) rotate() error {
 
 // log writes a log message with the given level and optional fields
 func (l *Logger) log(level LogLevel, fields Fields, format string, args ...interface{}) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
 	if level < l.minLevel {
 		return
 	}
-
-	l.mu.Lock()
-	defer l.mu.Unlock()
 
 	timestamp := time.Now().Format("2006-01-02 15:04:05.000")
 	message := fmt.Sprintf(format, args...)

@@ -1,0 +1,48 @@
+[MASTER]
+# Use multiple processes to speed up Pylint
+jobs=1
+
+[MESSAGES CONTROL]
+# Disable specific warnings that are acceptable for this project
+disable=
+    too-many-instance-attributes,
+    too-many-arguments,
+    too-many-positional-arguments,
+    import-outside-toplevel,
+    wrong-import-order,
+    broad-exception-caught,
+    logging-fstring-interpolation,
+    no-else-return,
+    unnecessary-pass,
+    inconsistent-return-statements,
+    protected-access,
+    subprocess-run-check,
+    raise-missing-from,
+    unused-argument,
+    trailing-whitespace
+
+[FORMAT]
+# Maximum number of characters on a single line
+max-line-length=100
+
+# Allow trailing whitespace (will be fixed separately)
+# This is temporary during the linting setup phase
+
+[BASIC]
+# Good variable names which should always be accepted
+good-names=i,j,k,ex,Run,_,id,db
+
+[DESIGN]
+# Maximum number of attributes for a class (default is 7)
+max-attributes=12
+
+# Maximum number of arguments for function / method
+max-args=9
+
+[IMPORTS]
+# Allow any import order for now
+allow-any-import-level=yes
+
+[EXCEPTIONS]
+# Exceptions that will emit a warning when caught
+overgeneral-exceptions=builtins.BaseException
