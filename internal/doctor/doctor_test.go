@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
@@ -2123,6 +2124,10 @@ func TestFixLargeLogs(t *testing.T) {
 
 // TestRunDiagnostics_Integration tests full diagnostic run
 func TestRunDiagnostics_Integration(t *testing.T) {
+	// Skip if bd command is not available (not installed in CI)
+	if _, err := exec.LookPath("bd"); err != nil {
+		t.Skip("bd command not available, skipping integration test")
+	}
 	tmpDir := t.TempDir()
 	ascDir := filepath.Join(tmpDir, ".asc")
 	

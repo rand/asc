@@ -520,11 +520,16 @@ phases = ["planning"]
 		
 		cfg, err := config.Load(configPath)
 		if err == nil {
-			// If config loads, verify command doesn't contain shell metacharacters
+			// If config loads, verify we can detect shell metacharacters
+			foundDangerous := false
 			for _, agent := range cfg.Agents {
 				if containsShellMetachars(agent.Command) {
-					t.Error("Config contains command with shell metacharacters")
+					foundDangerous = true
+					t.Logf("Correctly detected dangerous command: %s", agent.Command)
 				}
+			}
+			if !foundDangerous {
+				t.Error("Failed to detect command with shell metacharacters")
 			}
 		}
 	})

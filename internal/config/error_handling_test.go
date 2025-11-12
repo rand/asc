@@ -194,7 +194,7 @@ func TestValidate_ErrorPaths(t *testing.T) {
 				},
 			},
 			expectError: true,
-			errorMsg:    "command",
+			errorMsg:    "model",
 		},
 		{
 			name: "agent with empty phases",
@@ -217,7 +217,7 @@ func TestValidate_ErrorPaths(t *testing.T) {
 				},
 			},
 			expectError: true,
-			errorMsg:    "command",
+			errorMsg:    "phase",
 		},
 	}
 
