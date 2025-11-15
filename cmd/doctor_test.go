@@ -176,6 +176,10 @@ func TestDoctorCommand_WithFix(t *testing.T) {
 
 // TestDoctorCommand_JSONOutput tests doctor command with --json flag
 func TestDoctorCommand_JSONOutput(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+	
 	// Create test environment
 	env := NewTestEnvironment(t)
 	restore := ChangeToTempDir(t, env.TempDir)
@@ -237,6 +241,10 @@ func TestDoctorCommand_JSONOutput(t *testing.T) {
 
 // TestDoctorCommand_VerboseOutput tests doctor command with --verbose flag
 func TestDoctorCommand_VerboseOutput(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+	
 	// Create test environment
 	env := NewTestEnvironment(t)
 	restore := ChangeToTempDir(t, env.TempDir)
@@ -655,6 +663,10 @@ func TestDoctorCommand_DiagnosticsError(t *testing.T) {
 
 // TestDoctorCommand_JSONFormatError tests JSON formatting error handling
 func TestDoctorCommand_JSONFormatError(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+	
 	// This test verifies the JSON output path works correctly
 	env := NewTestEnvironment(t)
 	restore := ChangeToTempDir(t, env.TempDir)
@@ -756,6 +768,10 @@ func TestDoctorCommand_FixesError(t *testing.T) {
 
 // TestDoctorCommand_CombinedFlags tests doctor command with multiple flags
 func TestDoctorCommand_CombinedFlags(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+	
 	// Create test environment
 	env := NewTestEnvironment(t)
 	restore := ChangeToTempDir(t, env.TempDir)
@@ -815,6 +831,10 @@ func TestDoctorCommand_CombinedFlags(t *testing.T) {
 
 // TestDoctorCommand_AllFlags tests doctor command with all flags enabled
 func TestDoctorCommand_AllFlags(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+	
 	// Create test environment
 	env := NewTestEnvironment(t)
 	restore := ChangeToTempDir(t, env.TempDir)
@@ -876,6 +896,10 @@ func TestDoctorCommand_AllFlags(t *testing.T) {
 
 // TestDoctorCommand_ReportGeneration tests that report is properly generated
 func TestDoctorCommand_ReportGeneration(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+	
 	// Create test environment
 	env := NewTestEnvironment(t)
 	restore := ChangeToTempDir(t, env.TempDir)
@@ -984,6 +1008,10 @@ func TestDoctorCommand_IssueDetection(t *testing.T) {
 
 // TestDoctorCommand_HealthySystem tests doctor on a completely healthy system
 func TestDoctorCommand_HealthySystem(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+	
 	// Create test environment
 	env := NewTestEnvironment(t)
 	restore := ChangeToTempDir(t, env.TempDir)
