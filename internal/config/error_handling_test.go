@@ -187,7 +187,7 @@ func TestValidate_ErrorPaths(t *testing.T) {
 				},
 				Agents: map[string]AgentConfig{
 					"test": {
-						Command: "python test.py",
+						Command: "echo test",  // Use a command that exists
 						Model:   "",
 						Phases:  []string{"planning"},
 					},
@@ -210,7 +210,7 @@ func TestValidate_ErrorPaths(t *testing.T) {
 				},
 				Agents: map[string]AgentConfig{
 					"test": {
-						Command: "python test.py",
+						Command: "echo test",  // Use a command that exists
 						Model:   "claude",
 						Phases:  []string{},
 					},
